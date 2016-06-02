@@ -2,19 +2,14 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
+	"os"
 
-	"github.com/julienschmidt/httprouter"
+	"./cmd"
 )
 
-func ServeFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "hello, %s!\n", ps.ByName("file_name"))
-}
-
 func main() {
-	router := httprouter.New()
-	router.GET("/:file_name", ServeFile)
-
-	log.Fatal(http.ListenAndServe(":8080", router))
+	if err := cmd.RootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
 }
