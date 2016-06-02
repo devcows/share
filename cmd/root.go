@@ -2,43 +2,106 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/prestonTao/upnp"
 	"github.com/spf13/cobra"
 )
 
-func ServeFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "hello, %s!\n", ps.ByName("file_name"))
-}
+var fileNameParam string
 
 func init() {
 	RootCmd.AddCommand(versionCmd)
-	RootCmd.PersistentFlags().StringP("author", "a", "YOUR NAME", "Author name for copyright attribution")
-	RootCmd.PersistentFlags().Bool("viper", true, "Use Viper for configuration")
+	RootCmd.PersistentFlags().StringVar(&fileNameParam, "file", "f", "File for share")
+}
+
+// Ask the kernel for a free open port that is ready to use
+func GetPort() int {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		panic(err)
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port
+}
+
+func upnpPort(port int) {
+	mapping := new(upnp.Upnp)
+	if err := mapping.AddPortMapping(port, port, "TCP"); err == nil {
+		fmt.Println("success !")
+		// remove port mapping in gatway
+		// mapping.Reclaim()
+	} else {
+		fmt.Println("fail !")
+	}
+}
+
+func localIp(port int) {
+	host, _ := os.Hostname()
+	addrs, _ := net.LookupIP(host)
+	for _, addr := range addrs {
+		if ipv4 := addr.To4(); ipv4 != nil {
+			fmt.Printf("http://%s:%v\n", ipv4, port)
+		}
+	}
+}
+
+func publicIp(port int) {
+	resp, err := http.Get("http://myexternalip.com/raw")
+	if err == nil {
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+
+		if err == nil {
+			lines := strings.Split(string(body), "\n")
+			fmt.Printf("http://%s:%v\n", lines[0], port)
+		}
+	}
 }
 
 var RootCmd = &cobra.Command{
 	Use:   "share",
 	Short: "Share is a cli to share quickly a file with http protocol",
-	Long: `Share is a cli to share quickly a file with http protocol
-								with go. Complete documentation is available at https://github.com/devcows/share`,
+	Long:  `Share is a cli to share quickly a file with http protocol with go. Complete documentation is available at https://github.com/devcows/share`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Main process
-		fmt.Println("Server started at: 0.0.0.0:8080")
+		port := GetPort()
 
-		// GET file_name
-		// GET relative path
+		localIp(port)
+		publicIp(port)
 
-		// print links
 		// copy public link
-		// configure upnp
+
+		upnpPort(port)
+
 		// Launch as daemon
 
-		router := httprouter.New()
-		router.GET("/:file_name", ServeFile)
+		fmt.Printf("Server started at: 0.0.0.0:%v\n", port)
+		absFileNamePath, _ := filepath.Abs(fileNameParam)
+		fmt.Println("Sharing file: " + absFileNamePath)
 
-		log.Fatal(http.ListenAndServe(":8080", router))
+		router := httprouter.New()
+		fileServer := http.FileServer(http.Dir(path.Dir(fileNameParam)))
+		router.GET("/", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+			req.URL.Path = "/" + filepath.Base(fileNameParam)
+			fmt.Println("GET file: " + req.URL.Path)
+			fileServer.ServeHTTP(w, req)
+		})
+
+		log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), router))
 	},
 }
