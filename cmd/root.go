@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prestonTao/upnp"
 	"github.com/spf13/cobra"
@@ -39,28 +40,35 @@ func GetPort() int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
-func upnpPort(port int) {
+func upnpPort(port int) bool {
 	mapping := new(upnp.Upnp)
 	if err := mapping.AddPortMapping(port, port, "TCP"); err == nil {
 		fmt.Println("success !")
+		return true
 		// remove port mapping in gatway
 		// mapping.Reclaim()
 	} else {
 		fmt.Println("fail !")
+		return false
 	}
 }
 
-func localIp(port int) {
+func localIps(port int) []string {
+	listIps := []string{}
+
 	host, _ := os.Hostname()
 	addrs, _ := net.LookupIP(host)
 	for _, addr := range addrs {
 		if ipv4 := addr.To4(); ipv4 != nil {
-			fmt.Printf("http://%s:%v\n", ipv4, port)
+			listIps = append(listIps, fmt.Sprintf("http://%s:%v", ipv4, port))
 		}
 	}
+
+	return listIps
 }
 
-func publicIp(port int) {
+func publicIps(port int) []string {
+	listIps := []string{}
 	resp, err := http.Get("http://myexternalip.com/raw")
 	if err == nil {
 		defer resp.Body.Close()
@@ -68,9 +76,11 @@ func publicIp(port int) {
 
 		if err == nil {
 			lines := strings.Split(string(body), "\n")
-			fmt.Printf("http://%s:%v\n", lines[0], port)
+			listIps = append(listIps, fmt.Sprintf("http://%s:%v", lines[0], port))
 		}
 	}
+
+	return listIps
 }
 
 var RootCmd = &cobra.Command{
@@ -80,28 +90,46 @@ var RootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// Main process
 		port := GetPort()
+		portOpened := upnpPort(port)
 
-		localIp(port)
-		publicIp(port)
+		listIps := []string{}
+		if portOpened {
+			listIps = append(localIps(port), publicIps(port)...)
+		} else {
+			listIps = localIps(port)
+		}
 
-		// copy public link
+		if len(listIps) > 0 {
+			fmt.Println("Choose option to copy:")
+			for i := 0; i < len(listIps); i++ {
+				fmt.Printf("%v) %s\n", i, listIps[i])
+			}
 
-		upnpPort(port)
+			var option int
+			fmt.Scanf("%d", &option)
+			clipboard.WriteAll(listIps[option])
 
-		// Launch as daemon
+			// Launch as daemon
+			fmt.Printf("Server started at: 0.0.0.0:%v\n", port)
+			router := httprouter.New()
+			absFileNamePath, _ := filepath.Abs(fileNameParam)
 
-		fmt.Printf("Server started at: 0.0.0.0:%v\n", port)
-		absFileNamePath, _ := filepath.Abs(fileNameParam)
-		fmt.Println("Sharing file: " + absFileNamePath)
+			if info, err := os.Stat(absFileNamePath); err == nil && info.IsDir() {
+				fmt.Println("Sharing folder: " + absFileNamePath)
 
-		router := httprouter.New()
-		fileServer := http.FileServer(http.Dir(path.Dir(fileNameParam)))
-		router.GET("/", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-			req.URL.Path = "/" + filepath.Base(fileNameParam)
-			fmt.Println("GET file: " + req.URL.Path)
-			fileServer.ServeHTTP(w, req)
-		})
+				router.ServeFiles("/*filepath", http.Dir(absFileNamePath))
+			} else {
+				fmt.Println("Sharing file: " + absFileNamePath)
 
-		log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), router))
+				fileServer := http.FileServer(http.Dir(path.Dir(fileNameParam)))
+				router.GET("/", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+					req.URL.Path = "/" + filepath.Base(fileNameParam)
+					fmt.Println("GET file: " + req.URL.Path)
+					fileServer.ServeHTTP(w, req)
+				})
+			}
+
+			log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), router))
+		}
 	},
 }
