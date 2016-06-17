@@ -3,12 +3,15 @@ package cmd
 import (
 	"fmt"
 
+	"../lib"
+
 	"github.com/spf13/cobra"
 )
 
 var fileNameParam string
 var portAPI int
 var removeServerID int
+var settings lib.SettingsShare
 
 func init() {
 	RootCmd.AddCommand(versionCmd, ServerCmd, AddCmd, PsCmd, RmCmd)

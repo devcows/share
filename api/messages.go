@@ -1,6 +1,8 @@
 package api
 
-import "github.com/tylerb/graceful"
+import (
+	"../lib"
+)
 
 type AddResponse struct {
 	Path         string   `json:"path"`
@@ -15,9 +17,8 @@ type RmResponse struct {
 	ErrorMessage string `json:"error_message"`
 }
 
-type Server struct {
-	Path    string   `json:"path"`
-	ID      int      `json:"id"`
-	ListIps []string `json:"list_ips"`
-	Srv     *graceful.Server
+type PsResponse struct {
+	Status       bool         `json:"status"`
+	ErrorMessage string       `json:"error_message"`
+	Servers      []lib.Server `json:"servers"`
 }

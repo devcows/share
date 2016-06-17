@@ -17,9 +17,6 @@ import (
 	"github.com/tylerb/graceful"
 )
 
-var servers []api.Server
-var nextIDServer int
-
 func createHandler(filePathParam string) http.Handler {
 	router := httprouter.New()
 	absFilePath, _ := filepath.Abs(filePathParam)
@@ -52,13 +49,17 @@ func serverDaemon2(port int, srv *graceful.Server) {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func getAddPath(path string, c *gin.Context) {
+func getAddPath(path string, port int, c *gin.Context) {
 	var msg api.AddResponse
+	var server lib.Server
+
 	msg.Path = path
 
-	//TODO: Add port parameter
-	//strconv.ParseInt(c.DefaultPostForm("port", "-1"))
-	port := lib.GetPort()
+	if port > 0 {
+		server.Port = port
+	} else {
+		server.Port = lib.GetPort()
+	}
 
 	//TODO: check port already taken and return error.
 	if false {
@@ -68,13 +69,13 @@ func getAddPath(path string, c *gin.Context) {
 		c.JSON(http.StatusOK, msg)
 		return
 	}
-	msg.UpnpOpened = lib.OpenUpnpPort(port)
+	msg.UpnpOpened = lib.OpenUpnpPort(server.Port)
 
 	msg.ListIps = []string{}
 	if msg.UpnpOpened {
-		msg.ListIps = append(lib.GetLocalIps(port), lib.GetPublicIps(port)...)
+		msg.ListIps = append(lib.GetLocalIps(server.Port), lib.GetPublicIps(server.Port)...)
 	} else {
-		msg.ListIps = lib.GetLocalIps(port)
+		msg.ListIps = lib.GetLocalIps(server.Port)
 	}
 
 	if len(msg.ListIps) == 0 {
@@ -89,58 +90,73 @@ func getAddPath(path string, c *gin.Context) {
 	srv := new(graceful.Server)
 	srv.Timeout = 0
 	srv.Server = new(http.Server)
-	srv.Server.Addr = ":" + strconv.Itoa(port)
+	srv.Server.Addr = ":" + strconv.Itoa(server.Port)
 	srv.Server.Handler = handler
 
-	go serverDaemon2(port, srv)
+	go serverDaemon2(server.Port, srv)
 
-	var server api.Server
 	server.Path = msg.Path
 	server.ListIps = msg.ListIps
 	server.Srv = srv
-	server.ID = nextIDServer
-	nextIDServer++
-	servers = append(servers, server)
+
+	fmt.Printf("iep4")
+	_, err := lib.StoreServer(server)
+	if err != nil {
+		msg.Status = false
+		msg.ErrorMessage = "TODO set error message"
+		c.JSON(http.StatusOK, msg)
+		return
+	}
+
+	fmt.Printf("iep3")
 
 	msg.Status = true
-
 	c.JSON(http.StatusOK, msg)
 }
 
 func mainServer() {
-	fmt.Printf("Running APIREST 0.0.0.0:%v\n", portAPI)
 	r := gin.Default()
 	r.POST("/add", func(c *gin.Context) {
 		path := c.PostForm("path")
+		port := -1 //strconv.ParseInt(c.DefaultPostForm("port", "-1"), "-1")
 
-		getAddPath(path, c)
+		getAddPath(path, port, c)
 	})
 
 	r.GET("/rm/:id", func(c *gin.Context) {
 		var msg api.RmResponse
-		id := c.Param("id")
-
-		for i := 0; i < len(servers); i++ {
-			if id == strconv.Itoa(servers[i].ID) {
-				servers[i].Srv.Stop(0)
-
-				msg.Status = true
-				c.JSON(http.StatusOK, msg)
-				return
-			}
+		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+		if err != nil {
+			msg.Status = false
+			msg.ErrorMessage = fmt.Sprint("Error bad request, cannot parse the parameter id to integer.")
+			c.JSON(http.StatusOK, msg)
+			return
 		}
 
-		msg.Status = false
-		msg.ErrorMessage = fmt.Sprintf("Server doesn't found with the id = %s", id)
+		err2 := lib.RemoveServer(id)
+		if err2 != nil {
+			msg.Status = false
+			msg.ErrorMessage = fmt.Sprintf("Server doesn't found with the id = %v", id)
+			c.JSON(http.StatusOK, msg)
+			return
+		}
 
+		msg.Status = true
 		c.JSON(http.StatusOK, msg)
 	})
 
 	r.GET("/ps", func(c *gin.Context) {
-		c.JSON(200, servers)
+		servers, err := lib.ListServers()
+
+		if err != nil {
+			c.JSON(http.StatusOK, []lib.Server{})
+			return
+		}
+
+		c.JSON(http.StatusOK, servers)
 	})
 
-	r.Run(fmt.Sprintf(":%v", portAPI))
+	r.Run(lib.ConfigServerEndPoint(settings))
 }
 
 var ServerCmd = &cobra.Command{
@@ -148,8 +164,18 @@ var ServerCmd = &cobra.Command{
 	Short: "Server APIREST",
 	Long:  `Server APIREST`,
 	Run: func(cmd *cobra.Command, args []string) {
-		servers = []api.Server{}
-		nextIDServer = 1
+		var err error
+
+		if err = lib.InitSettings(&settings, portAPI); err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+
+		if err = lib.InitDB(lib.ConfigFileSQLITE()); err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+
 		mainServer()
 	},
 }

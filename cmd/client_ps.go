@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"../api"
+	"../lib"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +19,7 @@ var PsCmd = &cobra.Command{
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
 
-		res := []api.Server{}
+		res := []lib.Server{}
 		json.Unmarshal([]byte(body), &res)
 		fmt.Println("Id\tFolder\tList Ips")
 		for i := 0; i < len(res); i++ {
