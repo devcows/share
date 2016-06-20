@@ -45,7 +45,7 @@ func TestOpenDatabase(t *testing.T) {
 
 func TestInitDatabase(t *testing.T) {
 	_, err2 := os.Stat(test_settings.Daemon.DatabaseFilePath)
-	assert.Equal(t, false, os.IsNotExist(err2), "The database: %s doesn't exists!", test_settings.Daemon.DatabaseFilePath)
+	assert.False(t, os.IsNotExist(err2), "The database: %s doesn't exists!", test_settings.Daemon.DatabaseFilePath)
 }
 
 func TestStoreRemoveServer(t *testing.T) {
@@ -59,12 +59,12 @@ func TestStoreRemoveServer(t *testing.T) {
 
 	added_servers, err3 := ListServers()
 	assert.Nil(t, err3)
-	assert.Equal(t, len(initial_servers)+1, len(added_servers), "The server doesn't incremented")
+	assert.Equal(t, len(initial_servers)+1, len(added_servers), "The servers doesn't incremented")
 
 	err4 := RemoveServer(id)
 	assert.Nil(t, err4)
 
 	removed_servers, err5 := ListServers()
 	assert.Nil(t, err5)
-	assert.Equal(t, len(initial_servers), len(removed_servers), "The server doesn't incremented")
+	assert.Equal(t, len(initial_servers), len(removed_servers), "The servers doesn't incremented")
 }
