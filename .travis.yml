@@ -1,5 +1,5 @@
 language: go
-sudo: false
+sudo: required
 go:
   - 1.5.1
   - tip
@@ -13,10 +13,12 @@ matrix:
     - go: tip
 
 before_install:
+  - sudo apt-get install -qy libc6-dev-i386
   - go get github.com/mattn/goveralls
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mitchellh/gox
   - go get github.com/modocache/gover
+  - go get github.com/inconshreveable/mousetrap
 #  - go get github.com/tcnksm/ghr
 
 install:
