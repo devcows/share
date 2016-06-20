@@ -1,7 +1,7 @@
 package api
 
 import (
-	"../lib"
+	"github.com/devcows/share/lib"
 )
 
 type AddResponse struct {

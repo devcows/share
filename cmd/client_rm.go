@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"../api"
+	"github.com/devcows/share/api"
 	"github.com/spf13/cobra"
 )
 

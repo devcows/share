@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"path/filepath"
 
-	"../api"
 	"github.com/atotto/clipboard"
+	"github.com/devcows/share/api"
 	"github.com/spf13/cobra"
 )
 

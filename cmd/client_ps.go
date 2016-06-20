@@ -6,7 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"../lib"
+	"github.com/devcows/share/lib"
+	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
 )
 
@@ -21,9 +22,17 @@ var PsCmd = &cobra.Command{
 
 		res := []lib.Server{}
 		json.Unmarshal([]byte(body), &res)
-		fmt.Println("Id\tFolder\tList Ips")
-		for i := 0; i < len(res); i++ {
-			fmt.Printf("%v\t%s\t%v\n", res[i].ID, res[i].Path, res[i].ListIps)
+
+		lines := []string{
+			"ID | Folder | List Ips",
 		}
+
+		for i := 0; i < len(res); i++ {
+			line := fmt.Sprintf("%v|%s|%v", res[i].ID, res[i].Path, res[i].ListIps)
+			lines = append(lines, line)
+		}
+
+		result := columnize.SimpleFormat(lines)
+		fmt.Println(result)
 	},
 }

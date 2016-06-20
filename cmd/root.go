@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"../lib"
+	"github.com/devcows/share/lib"
 
 	"github.com/spf13/cobra"
 )

@@ -2,7 +2,6 @@ package lib
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
@@ -19,21 +18,20 @@ type Server struct {
 	Srv              *graceful.Server
 }
 
-var databaseFilePath string
+var settings SettingsShare
 
 func OpenDatabase() (*sql.DB, error) {
-	destDb, err := sql.Open("sqlite3_share", databaseFilePath)
+	destDb, err := sql.Open("sqlite3_share", settings.Daemon.DatabaseFilePath)
 	if err != nil {
 		return nil, err
 	}
-	//	defer destDb.Close()
 	destDb.Ping()
 
 	return destDb, nil
 }
 
-func InitDB(filepath string) error {
-	databaseFilePath = filepath
+func InitDB(settings_params SettingsShare) error {
+	settings = settings_params
 
 	sqlite3conn := []*sqlite3.SQLiteConn{}
 	sql.Register("sqlite3_share",
@@ -92,7 +90,6 @@ func StoreServer(server Server) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-	fmt.Printf("iep1")
 
 	stmt, err2 := destDb.Prepare(sql_add)
 	if err2 != nil {

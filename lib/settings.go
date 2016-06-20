@@ -2,12 +2,12 @@ package lib
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"runtime"
 	"strconv"
 
 	"github.com/BurntSushi/toml"
+	log "github.com/Sirupsen/logrus"
 )
 
 type SettingsShare struct {
@@ -15,43 +15,54 @@ type SettingsShare struct {
 }
 
 type Daemon struct {
-	Port int
-	Host string
+	Port             int
+	Host             string
+	EnableUpnp       bool
+	DatabaseFilePath string
+}
+
+func CreateConfigFile(settings SettingsShare, outputFolder string, outputFile string) {
+	os.MkdirAll(outputFolder, 0700)
+
+	f, err := os.Create(outputFile)
+	if err != nil {
+		panic(err)
+	}
+
+	var buf bytes.Buffer
+	e := toml.NewEncoder(&buf)
+	err = e.Encode(settings)
+	if err != nil {
+		panic(err)
+	}
+
+	f.WriteString(buf.String())
+	f.Close()
 }
 
 func InitSettings(settings *SettingsShare, portApi int) error {
 	if _, err := os.Stat(ConfigFile()); os.IsNotExist(err) {
-		fmt.Printf("New config file: %s\n", ConfigFile())
-		os.MkdirAll(ConfigFolder(), 0700)
-		settings = NewSettings()
+		log.Info("New config file: %s\n", ConfigFile())
+		*settings = NewSettings()
 
-		f, err := os.Create(ConfigFile())
-		if err != nil {
-			return err
-		}
-
-		var buf bytes.Buffer
-		e := toml.NewEncoder(&buf)
-		err = e.Encode(settings)
-		if err != nil {
-			return err
-		}
-
-		f.WriteString(buf.String())
-		f.Close()
+		CreateConfigFile(*settings, ConfigFolder(), ConfigFile())
 	} else {
-		fmt.Printf("Loading config file: %s\n", ConfigFile())
+		log.Info("Loading config file: %s\n", ConfigFile())
 		if _, err := toml.DecodeFile(ConfigFile(), &settings); err != nil {
-			return err
+			panic(err)
 		}
 	}
 
-	settings.Daemon.Port = portApi
+	if portApi > 0 {
+		settings.Daemon.Port = portApi
+	}
+
+	log.Info("Current config: %v\n", settings)
 	return nil
 }
 
-func NewSettings() *SettingsShare {
-	return &SettingsShare{Daemon: Daemon{Port: 7890, Host: "localhost"}}
+func NewSettings() SettingsShare {
+	return SettingsShare{Daemon: Daemon{Port: 7890, Host: "localhost", EnableUpnp: false, DatabaseFilePath: ConfigFileSQLITE()}}
 }
 
 func ConfigFolder() string {
@@ -63,7 +74,7 @@ func ConfigFile() string {
 }
 
 func ConfigFileSQLITE() string {
-	return ConfigFolder() + string(os.PathSeparator) + "database.sqlite3"
+	return ConfigFolder() + string(os.PathSeparator) + "db.sqlite3"
 }
 
 func ConfigServerEndPoint(settings SettingsShare) string {

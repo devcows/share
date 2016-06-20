@@ -9,10 +9,11 @@ import (
 	"os"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/prestonTao/upnp"
 )
 
-func GetPort() int {
+func RandomFreePort() int {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
 		panic(err)
@@ -29,13 +30,13 @@ func GetPort() int {
 func OpenUpnpPort(port int) bool {
 	mapping := new(upnp.Upnp)
 	if err := mapping.AddPortMapping(port, port, "TCP"); err == nil {
-		fmt.Println("success !")
+		log.Debug("success !")
 		return true
 		// remove port mapping in gatway
 		// mapping.Reclaim()
 	}
 
-	fmt.Println("fail !")
+	log.Debug("fail !")
 	return false
 }
 
