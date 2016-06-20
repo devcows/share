@@ -1,0 +1,15 @@
+{
+	"AppName": "share",
+	"PackageVersion": "0.0.1",
+	"ArtifactsDest": "./dist",
+	"Tasks": [
+		"go-vet",
+		"go-fmt",
+		"go-install",
+		"go-clean"
+	],
+	"ConfigVersion": "0.9",
+	"Env": [
+		"SHARE_MODE=release"
+	]
+}

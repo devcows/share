@@ -13,12 +13,13 @@ matrix:
     - go: tip
 
 before_install:
-  - sudo apt-get install -qy libc6-dev-i386
   - go get github.com/mattn/goveralls
   - go get golang.org/x/tools/cmd/cover
-  - go get github.com/mitchellh/gox
   - go get github.com/modocache/gover
-  - go get github.com/inconshreveable/mousetrap
+  - go get github.com/laher/goxc
+#  - sudo apt-get install -qy libc6-dev-i386
+#  - go get github.com/mitchellh/gox
+#  - go get github.com/inconshreveable/mousetrap
 #  - go get github.com/tcnksm/ghr
 
 install:
@@ -35,6 +36,7 @@ script:
   - goveralls -coverprofile=gover.coverprofile -service travis-ci
 
 after_success:
-  - gox -cgo -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
+  - goxc
+#  - gox -cgo -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
 #  - ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
 #  - ghr --username tcnksm-sample --token $GITHUB_TOKEN --replace --prerelease --debug pre-release dist/
