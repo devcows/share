@@ -37,6 +37,7 @@ script:
 
 after_success:
   - goxc
+  - ls -la ./dist
 #  - gox -cgo -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
 #  - ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
 #  - ghr --username tcnksm-sample --token $GITHUB_TOKEN --replace --prerelease --debug pre-release dist/

@@ -105,6 +105,13 @@ func mainServer() {
 	r.Run(lib.ConfigServerEndPoint(settings))
 }
 
+func overwriteSettings() {
+	//overwrite settings
+	if portAPI > 0 {
+		settings.Daemon.Port = portAPI
+	}
+}
+
 var ServerCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Server APIREST",
@@ -112,7 +119,7 @@ var ServerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 
-		if err = lib.InitSettings(&settings, portAPI); err != nil {
+		if err = lib.InitSettings(lib.ConfigFile(), &settings); err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
@@ -122,6 +129,7 @@ var ServerCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 
+		overwriteSettings()
 		mainServer()
 	},
 }

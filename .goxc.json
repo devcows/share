@@ -6,8 +6,15 @@
 		"go-vet",
 		"go-fmt",
 		"go-install",
-		"go-clean"
+		"go-clean",
+		"publish-github"
 	],
+	"TaskSettings": {
+		"publish-github": {
+			"repository": "devcows/share"
+		}
+	},
+
 	"ConfigVersion": "0.9",
 	"Env": [
 		"SHARE_MODE=release"

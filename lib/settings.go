@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 
@@ -21,40 +22,40 @@ type Daemon struct {
 	DatabaseFilePath string
 }
 
-func CreateConfigFile(settings SettingsShare, outputFolder string, outputFile string) {
+func CreateConfigFile(outputFile string, settings SettingsShare) error {
+	outputFolder := filepath.Dir(outputFile)
 	os.MkdirAll(outputFolder, 0700)
 
 	f, err := os.Create(outputFile)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	var buf bytes.Buffer
 	e := toml.NewEncoder(&buf)
 	err = e.Encode(settings)
 	if err != nil {
-		panic(err)
+		f.Close()
+		return err
 	}
 
 	f.WriteString(buf.String())
 	f.Close()
+
+	return nil
 }
 
-func InitSettings(settings *SettingsShare, portApi int) error {
-	if _, err := os.Stat(ConfigFile()); os.IsNotExist(err) {
-		log.Info("New config file: %s\n", ConfigFile())
+func InitSettings(configFile string, settings *SettingsShare) error {
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		log.Info("New config file: %s\n", configFile)
 		*settings = NewSettings()
 
-		CreateConfigFile(*settings, ConfigFolder(), ConfigFile())
+		CreateConfigFile(configFile, *settings)
 	} else {
-		log.Info("Loading config file: %s\n", ConfigFile())
-		if _, err := toml.DecodeFile(ConfigFile(), &settings); err != nil {
-			panic(err)
+		log.Info("Loading config file: %s\n", configFile)
+		if _, err := toml.DecodeFile(configFile, &settings); err != nil {
+			return err
 		}
-	}
-
-	if portApi > 0 {
-		settings.Daemon.Port = portApi
 	}
 
 	log.Info("Current config: %v\n", settings)

@@ -1,10 +1,7 @@
 package lib
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,15 +9,9 @@ import (
 
 var test_settings SettingsShare
 
-func TempFilename() string {
-	randBytes := make([]byte, 16)
-	rand.Read(randBytes)
-	return filepath.Join(os.TempDir(), "foo"+hex.EncodeToString(randBytes)+".sqlite3")
-}
-
 func setup() {
 	test_settings = NewSettings()
-	test_settings.Daemon.DatabaseFilePath = TempFilename()
+	test_settings.Daemon.DatabaseFilePath = TempFilename("db_", ".sqlite3")
 
 	err := InitDB(test_settings)
 	if err != nil {
