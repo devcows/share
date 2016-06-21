@@ -2,26 +2,27 @@ package lib
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 
-	"github.com/mattn/go-sqlite3"
+	_ "github.com/cznic/ql/driver"
 	"github.com/tylerb/graceful"
 )
 
 type Server struct {
-	ID               int       `json:"id"`
-	Path             string    `json:"path"`
-	Port             int       `json:"port"`
-	InsertedDatetime time.Time `json:"inserted_datetime"`
-	ListIps          []string  `json:"list_ips"`
-	Srv              *graceful.Server
+	UUID      string    `json:"uuid"`
+	Path      string    `json:"path"`
+	Port      int       `json:"port"`
+	CreatedAt time.Time `json:"created_at"`
+	ListIps   []string  `json:"list_ips"`
+	Srv       *graceful.Server
 }
 
 var settings SettingsShare
 
 func OpenDatabase() (*sql.DB, error) {
-	destDb, err := sql.Open("sqlite3_share", settings.Daemon.DatabaseFilePath)
+	destDb, err := sql.Open("ql", settings.Daemon.DatabaseFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -32,16 +33,6 @@ func OpenDatabase() (*sql.DB, error) {
 
 func InitDB(settings_params SettingsShare) error {
 	settings = settings_params
-
-	sqlite3conn := []*sqlite3.SQLiteConn{}
-	sql.Register("sqlite3_share",
-		&sqlite3.SQLiteDriver{
-			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-				sqlite3conn = append(sqlite3conn, conn)
-				return nil
-			},
-		})
-
 	err2 := CreateTable()
 	if err2 != nil {
 		return err2
@@ -53,12 +44,12 @@ func InitDB(settings_params SettingsShare) error {
 func CreateTable() error {
 	// create table if not exists
 	sql_table := `
-	CREATE TABLE IF NOT EXISTS servers(
-		Id INTEGER PRIMARY KEY AUTOINCREMENT,
-		Path TEXT,
+	CREATE TABLE IF NOT EXISTS Servers(
+		UUID string,
+		Path string,
 		Port int,
-		ListIps TEXT,
-		InsertedDatetime datetime
+		ListIps string,
+		CreatedAt time
 	);
 	`
 
@@ -67,55 +58,33 @@ func CreateTable() error {
 		return err
 	}
 
-	_, err2 := destDb.Exec(sql_table)
+	tx, err1 := destDb.Begin()
+	if err1 != nil {
+		return err1
+	}
+
+	_, err2 := tx.Exec(sql_table)
 	if err2 != nil {
 		return err2
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	defer destDb.Close()
 	return nil
 }
 
-func StoreServer(server Server) (int64, error) {
-	sql_add := `
-	INSERT OR REPLACE INTO servers(
+func StoreServer(server Server) error {
+	sqlAdd := `
+	INSERT INTO Servers(
+		UUID,
 		Path,
 		Port,
 		ListIps,
-		InsertedDatetime
-	) values(?, ?, ?, CURRENT_TIMESTAMP)
-	`
-
-	destDb, err := OpenDatabase()
-	if err != nil {
-		return -1, err
-	}
-
-	stmt, err2 := destDb.Prepare(sql_add)
-	if err2 != nil {
-		return -1, err2
-	}
-	defer stmt.Close()
-
-	res, err3 := stmt.Exec(server.Path, server.Port, strings.Join(server.ListIps, "||"))
-	if err3 != nil {
-		return -1, err3
-	}
-
-	id, err4 := res.LastInsertId()
-	if err4 != nil {
-		return -1, err4
-	}
-
-	defer destDb.Close()
-
-	return id, nil
-}
-
-func RemoveServer(id int64) error {
-	sql_remove := `
-	delete from servers where
-	Id = ?
+		CreatedAt
+	) values($1, $2, $3, $4, $5)
 	`
 
 	destDb, err := OpenDatabase()
@@ -123,52 +92,93 @@ func RemoveServer(id int64) error {
 		return err
 	}
 
-	stmt, err := destDb.Prepare(sql_remove)
-	if err != nil {
-		return err
+	tx, err1 := destDb.Begin()
+	if err1 != nil {
+		return err1
 	}
-	defer stmt.Close()
 
-	_, err2 := stmt.Exec(id)
+	stmt, err2 := tx.Prepare(sqlAdd)
 	if err2 != nil {
 		return err2
 	}
 
-	defer destDb.Close()
+	_, err3 := stmt.Exec(server.UUID, server.Path, server.Port, strings.Join(server.ListIps, "||"), server.CreatedAt)
+	if err3 != nil {
+		return err3
+	}
+	stmt.Close()
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	defer destDb.Close()
+	return nil
+}
+
+func RemoveServer(uuid string) error {
+	sqlRemove := `
+	delete from Servers where
+	UUID == $1
+	`
+
+	destDb, err := OpenDatabase()
+	if err != nil {
+		return err
+	}
+
+	tx, err1 := destDb.Begin()
+	if err1 != nil {
+		return err1
+	}
+
+	stmt, err2 := tx.Prepare(sqlRemove)
+	if err2 != nil {
+		return err2
+	}
+
+	if _, err = stmt.Exec(uuid); err != nil {
+		return err
+	}
+	stmt.Close()
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	defer destDb.Close()
 	return nil
 }
 
 func ListServers() ([]Server, error) {
+	var results []Server
+
 	sql_select := `
-	select Id, Path, Port, ListIps from servers
-	order by InsertedDatetime DESC
+	select UUID, Path, Port, ListIps, CreatedAt from Servers order by CreatedAt
 	`
 
 	destDb, err := OpenDatabase()
 	if err != nil {
-		return []Server{}, err
+		return results, err
 	}
 
-	rows, err2 := destDb.Query(sql_select)
-	if err2 != nil {
-		return []Server{}, err2
+	rows, err1 := destDb.Query(sql_select)
+	if err1 != nil {
+		return results, err1
 	}
-	defer rows.Close()
 
-	var results []Server
+	fmt.Printf("%v", rows)
 	for rows.Next() {
 		item := Server{}
 
 		listIps := ""
-		err3 := rows.Scan(&item.ID, &item.Path, &item.Port, &listIps)
-		if err3 == nil {
+		err = rows.Scan(&item.UUID, &item.Path, &item.Port, &listIps, &item.CreatedAt)
+		if err == nil {
 			item.ListIps = strings.Split(listIps, "||")
 			results = append(results, item)
 		}
 	}
 
 	defer destDb.Close()
-
 	return results, nil
 }

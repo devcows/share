@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
+	"time"
 
 	"github.com/devcows/share/api"
 	"github.com/devcows/share/lib"
 	"github.com/gin-gonic/gin"
+	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 )
 
 func getAddPath(path string, port int, c *gin.Context) {
-	server := lib.Server{Port: port, Path: path}
+	server := lib.Server{UUID: uuid.NewV4().String(), Port: port, Path: path, CreatedAt: time.Now()}
 	msg := api.AddResponse{UpnpOpened: false, ListIps: []string{}, Path: path}
 
 	if port < 0 {
@@ -48,10 +49,10 @@ func getAddPath(path string, port int, c *gin.Context) {
 	server.ListIps = msg.ListIps
 
 	lib.StartServer(&server)
-	_, err := lib.StoreServer(server)
+	err := lib.StoreServer(server)
 	if err != nil {
 		msg.Status = false
-		msg.ErrorMessage = "TODO set error message"
+		msg.ErrorMessage = err.Error()
 		c.JSON(http.StatusOK, msg)
 		return
 	}
@@ -69,20 +70,14 @@ func mainServer() {
 		getAddPath(path, port, c)
 	})
 
-	r.GET("/rm/:id", func(c *gin.Context) {
+	r.GET("/rm/:uuid", func(c *gin.Context) {
 		var msg api.RmResponse
-		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+		uuid := c.Param("uuid")
+
+		err := lib.RemoveServer(uuid)
 		if err != nil {
 			msg.Status = false
-			msg.ErrorMessage = fmt.Sprint("Error bad request, cannot parse the parameter id to integer.")
-			c.JSON(http.StatusOK, msg)
-			return
-		}
-
-		err2 := lib.RemoveServer(id)
-		if err2 != nil {
-			msg.Status = false
-			msg.ErrorMessage = fmt.Sprintf("Server doesn't found with the id = %v", id)
+			msg.ErrorMessage = fmt.Sprintf("Server doesn't found with the uuid = %s", uuid)
 			c.JSON(http.StatusOK, msg)
 			return
 		}

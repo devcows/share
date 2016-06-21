@@ -3,7 +3,9 @@ package lib
 import (
 	"os"
 	"testing"
+	"time"
 
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,7 +13,7 @@ var test_settings SettingsShare
 
 func setup() {
 	test_settings = NewSettings()
-	test_settings.Daemon.DatabaseFilePath = TempFilename("db_", ".sqlite3")
+	test_settings.Daemon.DatabaseFilePath = TempFilename("db_", ".db")
 
 	err := InitDB(test_settings)
 	if err != nil {
@@ -43,16 +45,15 @@ func TestStoreRemoveServer(t *testing.T) {
 	initial_servers, err := ListServers()
 	assert.Nil(t, err)
 
-	server := Server{Path: "MyString", Port: 1234, ListIps: []string{"1", "2"}}
-	id, err2 := StoreServer(server)
+	server := Server{UUID: uuid.NewV4().String(), Path: "MyString", Port: 1234, ListIps: []string{"1", "2"}, CreatedAt: time.Now()}
+	err2 := StoreServer(server)
 	assert.Nil(t, err2)
-	assert.NotNil(t, id)
 
 	added_servers, err3 := ListServers()
 	assert.Nil(t, err3)
 	assert.Equal(t, len(initial_servers)+1, len(added_servers), "The servers doesn't incremented")
 
-	err4 := RemoveServer(id)
+	err4 := RemoveServer(server.UUID)
 	assert.Nil(t, err4)
 
 	removed_servers, err5 := ListServers()

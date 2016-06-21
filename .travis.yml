@@ -16,28 +16,15 @@ before_install:
   - go get github.com/mattn/goveralls
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/modocache/gover
-  - go get github.com/laher/goxc
-#  - sudo apt-get install -qy libc6-dev-i386
-#  - go get github.com/mitchellh/gox
-#  - go get github.com/inconshreveable/mousetrap
-#  - go get github.com/tcnksm/ghr
 
 install:
   - go get github.com/stretchr/testify/assert
   - go get -v ./...
 
 script:
-#  - go test -v -covermode=count  ./...
   - go test -v -coverprofile=api.coverprofile ./api
   - go test -v -coverprofile=cmd.coverprofile ./cmd
   - go test -v -coverprofile=lib.coverprofile ./lib
   - go test -v -coverprofile=main.coverprofile
   - gover
   - goveralls -coverprofile=gover.coverprofile -service travis-ci
-
-after_success:
-  - goxc
-  - ls -la ./dist
-#  - gox -cgo -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
-#  - ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
-#  - ghr --username tcnksm-sample --token $GITHUB_TOKEN --replace --prerelease --debug pre-release dist/

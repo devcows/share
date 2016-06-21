@@ -24,11 +24,11 @@ var PsCmd = &cobra.Command{
 		json.Unmarshal([]byte(body), &res)
 
 		lines := []string{
-			"ID | Folder | List Ips",
+			"UUID | Folder | List Ips | CreatedAt",
 		}
 
 		for i := 0; i < len(res); i++ {
-			line := fmt.Sprintf("%v|%s|%v", res[i].ID, res[i].Path, res[i].ListIps)
+			line := fmt.Sprintf("%v|%s|%v|%v", res[i].UUID, res[i].Path, res[i].ListIps, res[i].CreatedAt)
 			lines = append(lines, line)
 		}
 

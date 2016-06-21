@@ -79,7 +79,7 @@ func ConfigFile() string {
 }
 
 func ConfigFileSQLITE() string {
-	return ConfigFolder() + string(os.PathSeparator) + "db.sqlite3"
+	return ConfigFolder() + string(os.PathSeparator) + "database.db"
 }
 
 func ConfigServerEndPoint(settings SettingsShare) string {
