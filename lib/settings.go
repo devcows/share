@@ -50,7 +50,11 @@ func InitSettings(configFile string, settings *SettingsShare) error {
 		log.Info("New config file: %s\n", configFile)
 		*settings = NewSettings()
 
-		CreateConfigFile(configFile, *settings)
+		err := CreateConfigFile(configFile, *settings)
+
+		if err != nil {
+			return err
+		}
 	} else {
 		log.Info("Loading config file: %s\n", configFile)
 		if _, err := toml.DecodeFile(configFile, &settings); err != nil {

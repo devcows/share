@@ -17,13 +17,13 @@ func TempFilename(prefix string, extension string) string {
 }
 
 func TestCreateConfigFile(t *testing.T) {
-	test_settings = NewSettings()
+	var test_settings SettingsShare
 
 	configFile := TempFilename("config_", ".toml")
 	err := CreateConfigFile(configFile, test_settings)
 	assert.Nil(t, err)
 
-	_, err2 := os.Stat(test_settings.Daemon.DatabaseFilePath)
+	_, err2 := os.Stat(configFile)
 	assert.False(t, os.IsNotExist(err2), "The config file: %s doesn't exists!", configFile)
 }
 
