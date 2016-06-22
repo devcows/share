@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var test_settings SettingsShare
+var testSettings SettingsShare
 
 func setup() {
-	test_settings = NewSettings()
-	test_settings.Daemon.DatabaseFilePath = TempFilename("db_", ".db")
+	testSettings = NewSettings()
+	testSettings.Daemon.DatabaseFilePath = TempFilename("db_", ".db")
 
-	err := InitDB(test_settings)
+	err := InitDB(testSettings)
 	if err != nil {
 		panic(err)
 	}
@@ -37,8 +37,8 @@ func TestOpenDatabase(t *testing.T) {
 }
 
 func TestInitDatabase(t *testing.T) {
-	_, err2 := os.Stat(test_settings.Daemon.DatabaseFilePath)
-	assert.False(t, os.IsNotExist(err2), "The database: %s doesn't exists!", test_settings.Daemon.DatabaseFilePath)
+	_, err2 := os.Stat(testSettings.Daemon.DatabaseFilePath)
+	assert.False(t, os.IsNotExist(err2), "The database: %s doesn't exists!", testSettings.Daemon.DatabaseFilePath)
 }
 
 func TestStoreRemoveServer(t *testing.T) {
@@ -49,14 +49,14 @@ func TestStoreRemoveServer(t *testing.T) {
 	err2 := StoreServer(server)
 	assert.Nil(t, err2)
 
-	added_servers, err3 := ListServers()
+	addedServers, err3 := ListServers()
 	assert.Nil(t, err3)
-	assert.Equal(t, len(initial_servers)+1, len(added_servers), "The servers doesn't incremented")
+	assert.Equal(t, len(initial_servers)+1, len(addedServers), "The servers doesn't incremented")
 
 	err4 := RemoveServer(server.UUID)
 	assert.Nil(t, err4)
 
-	removed_servers, err5 := ListServers()
+	removedServers, err5 := ListServers()
 	assert.Nil(t, err5)
-	assert.Equal(t, len(initial_servers), len(removed_servers), "The servers doesn't incremented")
+	assert.Equal(t, len(initial_servers), len(removedServers), "The servers doesn't incremented")
 }

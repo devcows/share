@@ -14,7 +14,7 @@ import (
 )
 
 func copyClipboard(strToCopy string) {
-	fmt.Printf("Copied to clipboard: %s!", strToCopy)
+	fmt.Printf("Copied to clipboard: %s", strToCopy)
 	clipboard.WriteAll(strToCopy)
 }
 
@@ -38,7 +38,7 @@ var AddCmd = &cobra.Command{
 				return
 			}
 
-			fmt.Println("Choose option to copy:")
+			fmt.Println("Choose option to copy to clipboard:")
 			for i := 0; i < len(res.ListIps); i++ {
 				fmt.Printf("%v) %s\n", i, res.ListIps[i])
 			}

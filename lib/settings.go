@@ -13,6 +13,7 @@ import (
 
 type SettingsShare struct {
 	Daemon Daemon
+	Mode   string
 }
 
 type Daemon struct {
@@ -46,28 +47,28 @@ func CreateConfigFile(outputFile string, settings SettingsShare) error {
 }
 
 func InitSettings(configFile string, settings *SettingsShare) error {
-	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		log.Info("New config file: %s\n", configFile)
-		*settings = NewSettings()
+	*settings = NewSettings()
 
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		log.WithFields(log.Fields{"file": configFile}).Info("New config file.")
 		err := CreateConfigFile(configFile, *settings)
 
 		if err != nil {
 			return err
 		}
 	} else {
-		log.Info("Loading config file: %s\n", configFile)
+		log.WithFields(log.Fields{"file": configFile}).Info("Loading config file.")
 		if _, err := toml.DecodeFile(configFile, &settings); err != nil {
 			return err
 		}
 	}
 
-	log.Info("Current config: %v\n", settings)
+	log.WithFields(log.Fields{"settings": settings}).Info("Current config.")
 	return nil
 }
 
 func NewSettings() SettingsShare {
-	return SettingsShare{Daemon: Daemon{Port: 7890, Host: "localhost", EnableUpnp: false, DatabaseFilePath: ConfigFileSQLITE()}}
+	return SettingsShare{Daemon: Daemon{Port: 7890, Host: "localhost", EnableUpnp: false, DatabaseFilePath: ConfigFileSQLITE()}, Mode: "release"}
 }
 
 func ConfigFolder() string {

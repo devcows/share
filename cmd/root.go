@@ -10,14 +10,14 @@ import (
 
 var fileNameParam string
 var portAPI int
-var removeServerID int
+var removeServerUUID string
 var settings lib.SettingsShare
 
 func init() {
 	RootCmd.AddCommand(versionCmd, ServerCmd, AddCmd, PsCmd, RmCmd)
 	AddCmd.PersistentFlags().StringVar(&fileNameParam, "file", "f", "File for share")
 	ServerCmd.PersistentFlags().IntVarP(&portAPI, "port", "p", 7890, "Port APIREST")
-	RmCmd.PersistentFlags().IntVarP(&removeServerID, "id", "i", -1, "Id remove server")
+	RmCmd.PersistentFlags().StringVar(&removeServerUUID, "uuid", "u", "UUID server")
 }
 
 var RootCmd = &cobra.Command{

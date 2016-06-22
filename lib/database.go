@@ -2,7 +2,6 @@ package lib
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
@@ -58,6 +57,8 @@ func CreateTable() error {
 		return err
 	}
 
+	defer destDb.Close()
+
 	tx, err1 := destDb.Begin()
 	if err1 != nil {
 		return err1
@@ -72,7 +73,6 @@ func CreateTable() error {
 		return err
 	}
 
-	defer destDb.Close()
 	return nil
 }
 
@@ -91,6 +91,7 @@ func StoreServer(server Server) error {
 	if err != nil {
 		return err
 	}
+	defer destDb.Close()
 
 	tx, err1 := destDb.Begin()
 	if err1 != nil {
@@ -101,18 +102,17 @@ func StoreServer(server Server) error {
 	if err2 != nil {
 		return err2
 	}
+	defer stmt.Close()
 
 	_, err3 := stmt.Exec(server.UUID, server.Path, server.Port, strings.Join(server.ListIps, "||"), server.CreatedAt)
 	if err3 != nil {
 		return err3
 	}
-	stmt.Close()
 
 	if err = tx.Commit(); err != nil {
 		return err
 	}
 
-	defer destDb.Close()
 	return nil
 }
 
@@ -126,6 +126,7 @@ func RemoveServer(uuid string) error {
 	if err != nil {
 		return err
 	}
+	defer destDb.Close()
 
 	tx, err1 := destDb.Begin()
 	if err1 != nil {
@@ -136,17 +137,16 @@ func RemoveServer(uuid string) error {
 	if err2 != nil {
 		return err2
 	}
+	defer stmt.Close()
 
 	if _, err = stmt.Exec(uuid); err != nil {
 		return err
 	}
-	stmt.Close()
 
 	if err = tx.Commit(); err != nil {
 		return err
 	}
 
-	defer destDb.Close()
 	return nil
 }
 
@@ -161,13 +161,13 @@ func ListServers() ([]Server, error) {
 	if err != nil {
 		return results, err
 	}
+	defer destDb.Close()
 
 	rows, err1 := destDb.Query(sql_select)
 	if err1 != nil {
 		return results, err1
 	}
 
-	fmt.Printf("%v", rows)
 	for rows.Next() {
 		item := Server{}
 
@@ -179,6 +179,5 @@ func ListServers() ([]Server, error) {
 		}
 	}
 
-	defer destDb.Close()
 	return results, nil
 }

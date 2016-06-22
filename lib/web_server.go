@@ -17,11 +17,11 @@ func CreateHandler(filePathParam string) http.Handler {
 	absFilePath, _ := filepath.Abs(filePathParam)
 
 	if info, err := os.Stat(absFilePath); err == nil && info.IsDir() {
-		log.Info("Sharing folder: " + absFilePath)
+		log.Info("Creating handler for folder: " + absFilePath)
 
 		router.ServeFiles("/*filepath", http.Dir(absFilePath))
 	} else {
-		log.Info("Sharing file: " + absFilePath)
+		log.Info("Creating handler for file: " + absFilePath)
 
 		fileServer := http.FileServer(http.Dir(path.Dir(filePathParam)))
 		router.GET("/", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -43,7 +43,7 @@ func ServerDaemon2(port int, srv *graceful.Server) {
 }
 
 func StartServer(server *Server) {
-	log.WithFields(log.Fields{"ip": "0.0.0.0", "port": server.Port}).Info("Server started.")
+	log.WithFields(log.Fields{"ip": "0.0.0.0", "port": server.Port, "path": server.Path}).Info("Server started.")
 	handler := CreateHandler(server.Path)
 	//go serverDaemon(port, handler)
 	srv := new(graceful.Server)
