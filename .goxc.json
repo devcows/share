@@ -1,19 +1,19 @@
 {
 	"AppName": "share",
 	"ArtifactsDest": "./dist",
-	"Os": "linux darwin windows",
 	"Tasks": [
-		"default",		
+		"default",
 		"publish-github"
 	],
+	"Os": "linux darwin windows",
+	"PackageVersion": "0.0.2",
 	"TaskSettings": {
 		"publish-github": {
 			"owner": "devcows",
-			"repository": "share",
-			"prerelease": false
+			"prerelease": false,
+			"repository": "share"
 		}
 	},
-	"PackageVersion": "0.0.1",
 	"ConfigVersion": "0.9",
 	"Env": [
 		"SHARE_MODE=release"
