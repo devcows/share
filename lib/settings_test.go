@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -78,8 +79,14 @@ func TestConfigServerEndPoint(t *testing.T) {
 }
 
 func TestUserHomeDir(t *testing.T) {
-	pathConfigUserDir := UserHomeDir()
+	listOs := []string{"linux", "windows", "darwin"}
 
-	assert.NotNil(t, pathConfigUserDir)
-	assert.True(t, len(pathConfigUserDir) > 0)
+	for i := 0; i < len(listOs); i++ {
+		pathConfigUserDir := UserHomeDir(listOs[i])
+
+		assert.NotNil(t, pathConfigUserDir)
+		if listOs[i] == runtime.GOOS {
+			assert.True(t, len(pathConfigUserDir) > 0)
+		}
+	}
 }

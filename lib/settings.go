@@ -31,18 +31,15 @@ func CreateConfigFile(outputFile string, settings SettingsShare) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	var buf bytes.Buffer
 	e := toml.NewEncoder(&buf)
-	err = e.Encode(settings)
-	if err != nil {
-		f.Close()
+	if err = e.Encode(settings); err != nil {
 		return err
 	}
 
 	f.WriteString(buf.String())
-	f.Close()
-
 	return nil
 }
 
@@ -51,13 +48,13 @@ func InitSettings(configFile string, settings *SettingsShare) error {
 
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
 		log.WithFields(log.Fields{"file": configFile}).Info("New config file.")
-		err := CreateConfigFile(configFile, *settings)
 
-		if err != nil {
+		if err := CreateConfigFile(configFile, *settings); err != nil {
 			return err
 		}
 	} else {
 		log.WithFields(log.Fields{"file": configFile}).Info("Loading config file.")
+
 		if _, err := toml.DecodeFile(configFile, &settings); err != nil {
 			return err
 		}
@@ -72,7 +69,7 @@ func NewSettings() SettingsShare {
 }
 
 func ConfigFolder() string {
-	return UserHomeDir() + string(os.PathSeparator) + ".share"
+	return UserHomeDir(runtime.GOOS) + string(os.PathSeparator) + ".share"
 }
 
 func ConfigFile() string {
@@ -87,8 +84,8 @@ func ConfigServerEndPoint(settings SettingsShare) string {
 	return settings.Daemon.Host + ":" + strconv.Itoa(settings.Daemon.Port)
 }
 
-func UserHomeDir() string {
-	if runtime.GOOS == "windows" {
+func UserHomeDir(runtime_goos string) string {
+	if runtime_goos == "windows" {
 		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		if home == "" {
 			return os.Getenv("USERPROFILE")

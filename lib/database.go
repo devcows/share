@@ -18,7 +18,7 @@ type Server struct {
 	Srv       *graceful.Server
 }
 
-var settings SettingsShare
+var settings *SettingsShare
 
 func OpenDatabase() (*sql.DB, error) {
 	destDb, err := sql.Open("ql", settings.Daemon.DatabaseFilePath)
@@ -31,7 +31,7 @@ func OpenDatabase() (*sql.DB, error) {
 }
 
 func InitDB(settings_params SettingsShare) error {
-	settings = settings_params
+	settings = &settings_params
 	err2 := CreateTable()
 	if err2 != nil {
 		return err2
@@ -59,14 +59,13 @@ func CreateTable() error {
 
 	defer destDb.Close()
 
-	tx, err1 := destDb.Begin()
-	if err1 != nil {
-		return err1
+	tx, err := destDb.Begin()
+	if err != nil {
+		return err
 	}
 
-	_, err2 := tx.Exec(sql_table)
-	if err2 != nil {
-		return err2
+	if _, err = tx.Exec(sql_table); err != nil {
+		return err
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -93,20 +92,20 @@ func StoreServer(server Server) error {
 	}
 	defer destDb.Close()
 
-	tx, err1 := destDb.Begin()
-	if err1 != nil {
-		return err1
+	tx, err := destDb.Begin()
+	if err != nil {
+		return err
 	}
 
-	stmt, err2 := tx.Prepare(sqlAdd)
-	if err2 != nil {
-		return err2
+	stmt, err := tx.Prepare(sqlAdd)
+	if err != nil {
+		return err
 	}
 	defer stmt.Close()
 
-	_, err3 := stmt.Exec(server.UUID, server.Path, server.Port, strings.Join(server.ListIps, "||"), server.CreatedAt)
-	if err3 != nil {
-		return err3
+	_, err = stmt.Exec(server.UUID, server.Path, server.Port, strings.Join(server.ListIps, "||"), server.CreatedAt)
+	if err != nil {
+		return err
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -116,11 +115,19 @@ func StoreServer(server Server) error {
 	return nil
 }
 
+func FindServer(uuid string) (Server, error) {
+	return Server{}, nil
+}
+
 func RemoveServer(uuid string) error {
 	sqlRemove := `
 	delete from Servers where
 	UUID == $1
 	`
+
+	if _, err := FindServer(uuid); err != nil {
+		return err
+	}
 
 	destDb, err := OpenDatabase()
 	if err != nil {
@@ -128,14 +135,14 @@ func RemoveServer(uuid string) error {
 	}
 	defer destDb.Close()
 
-	tx, err1 := destDb.Begin()
-	if err1 != nil {
-		return err1
+	tx, err := destDb.Begin()
+	if err != nil {
+		return err
 	}
 
-	stmt, err2 := tx.Prepare(sqlRemove)
-	if err2 != nil {
-		return err2
+	stmt, err := tx.Prepare(sqlRemove)
+	if err != nil {
+		return err
 	}
 	defer stmt.Close()
 
@@ -163,9 +170,9 @@ func ListServers() ([]Server, error) {
 	}
 	defer destDb.Close()
 
-	rows, err1 := destDb.Query(sql_select)
-	if err1 != nil {
-		return results, err1
+	rows, err := destDb.Query(sql_select)
+	if err != nil {
+		return results, err
 	}
 
 	for rows.Next() {

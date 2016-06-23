@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,10 +16,15 @@ import (
 )
 
 func prepareAndRunServer(server *lib.Server) (bool, error) {
+	var err error
 	upnpOpened := false
 
 	if server.Port < 0 {
-		server.Port = lib.RandomFreePort()
+		server.Port, err = lib.RandomFreePort()
+
+		if err != nil {
+			return upnpOpened, err
+		}
 	}
 
 	/*
@@ -42,65 +48,62 @@ func prepareAndRunServer(server *lib.Server) (bool, error) {
 		server.ListIps = lib.GetLocalIps(server.Port)
 	}
 
-	/*
-		TODO: check list ips and if empty return error.
-			if len(msg.ListIps) == 0 {
-				msg.Status = false
-				msg.ErrorMessage = "No ips, check network connectivity."
-				c.JSON(http.StatusOK, msg)
-				return
-			}
-	*/
-	lib.StartServer(server)
+	if len(server.ListIps) == 0 {
+		return upnpOpened, errors.New("No ips, check network connectivity.")
+	}
 
-	return upnpOpened, nil
+	err = lib.StartServer(server)
+	return upnpOpened, err
 }
 
 func processAddServer(server lib.Server, c *gin.Context) {
 	upnpOpened, err := prepareAndRunServer(&server)
-	msg := api.AddResponse{UpnpOpened: upnpOpened, ListIps: server.ListIps, Path: server.Path}
+	msg := api.AddResponse{Status: true, UpnpOpened: upnpOpened, ListIps: server.ListIps, Path: server.Path}
 
 	if err != nil {
 		msg.Status = false
-		msg.ErrorMessage = err.Error()
+		msg.ErrorMessage = fmt.Sprintf("Error: %s", err)
 		c.JSON(http.StatusOK, msg)
 		return
 	}
 
 	if err = lib.StoreServer(server); err != nil {
 		msg.Status = false
-		msg.ErrorMessage = err.Error()
+		msg.ErrorMessage = fmt.Sprintf("Error: %s", err)
 		c.JSON(http.StatusOK, msg)
 		return
 	}
 
-	msg.Status = true
 	c.JSON(http.StatusOK, msg)
 }
 
 func processRmServer(uuid string, c *gin.Context) {
-	var msg api.RmResponse
+	msg := api.RmResponse{Status: true}
 
 	if err := lib.RemoveServer(uuid); err != nil {
 		msg.Status = false
-		msg.ErrorMessage = fmt.Sprintf("Server doesn't found with the uuid = %s", uuid)
+		msg.ErrorMessage = fmt.Sprintf("Error: %s", err) //fmt.Sprintf("Server doesn't found with the uuid = %s", uuid)
 		c.JSON(http.StatusOK, msg)
 		return
 	}
 
-	msg.Status = true
 	c.JSON(http.StatusOK, msg)
 }
 
 func processPsServers(c *gin.Context) {
-	servers, err := lib.ListServers()
+	msg := api.PsResponse{Status: true}
+	var err error
 
+	msg.Servers, err = lib.ListServers()
 	if err != nil {
-		c.JSON(http.StatusOK, []lib.Server{})
+		msg.Status = false
+		msg.ErrorMessage = fmt.Sprintf("Error: %s", err)
+
+		c.JSON(http.StatusOK, msg)
 		return
 	}
 
-	c.JSON(http.StatusOK, servers)
+	c.JSON(http.StatusOK, msg)
 }
 
 func mainServer() {
@@ -142,11 +145,6 @@ func loadInitialServers() error {
 }
 
 func overwriteSettings() {
-	//overwrite settings
-	if portAPI > 0 {
-		settings.Daemon.Port = portAPI
-	}
-
 	if settings.Mode == "release" {
 		log.SetFormatter(&log.JSONFormatter{})
 
@@ -173,12 +171,12 @@ var ServerCmd = &cobra.Command{
 		var err error
 
 		if err = lib.InitSettings(lib.ConfigFile(), &settings); err != nil {
-			fmt.Println(err)
+			log.Error(fmt.Sprintf("Error: %s", err))
 			os.Exit(-1)
 		}
 
 		if err = lib.InitDB(settings); err != nil {
-			fmt.Println(err)
+			log.Error(fmt.Sprintf("Error: %s", err))
 			os.Exit(-1)
 		}
 

@@ -7,7 +7,8 @@ import (
 )
 
 func TestRandomFreePort(t *testing.T) {
-	port := RandomFreePort()
+	port, err := RandomFreePort()
+	assert.Nil(t, err)
 	assert.Equal(t, true, port > 0, "Retrieve random free port")
 }
 

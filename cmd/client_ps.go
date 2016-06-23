@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/devcows/share/lib"
+	"github.com/devcows/share/api"
 	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
 )
@@ -20,19 +20,24 @@ var PsCmd = &cobra.Command{
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
 
-		res := []lib.Server{}
+		res := api.PsResponse{}
 		json.Unmarshal([]byte(body), &res)
 
-		lines := []string{
-			"UUID | Folder | List Ips | CreatedAt",
-		}
+		if res.Status {
+			lines := []string{
+				"UUID | Folder | List Ips | CreatedAt",
+			}
 
-		for i := 0; i < len(res); i++ {
-			line := fmt.Sprintf("%v|%s|%v|%v", res[i].UUID, res[i].Path, res[i].ListIps, res[i].CreatedAt)
-			lines = append(lines, line)
-		}
+			for i := 0; i < len(res.Servers); i++ {
+				server := res.Servers[i]
+				line := fmt.Sprintf("%v|%s|%v|%v", server.UUID, server.Path, server.ListIps, server.CreatedAt)
+				lines = append(lines, line)
+			}
 
-		result := columnize.SimpleFormat(lines)
-		fmt.Println(result)
+			result := columnize.SimpleFormat(lines)
+			fmt.Println(result)
+		} else {
+			fmt.Printf("%s\n", res.ErrorMessage)
+		}
 	},
 }

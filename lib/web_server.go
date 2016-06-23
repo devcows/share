@@ -42,7 +42,7 @@ func ServerDaemon2(port int, srv *graceful.Server) {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func StartServer(server *Server) {
+func StartServer(server *Server) error {
 	log.WithFields(log.Fields{"ip": "0.0.0.0", "port": server.Port, "path": server.Path}).Info("Server started.")
 	handler := CreateHandler(server.Path)
 	//go serverDaemon(port, handler)
@@ -54,4 +54,6 @@ func StartServer(server *Server) {
 
 	go ServerDaemon2(server.Port, srv)
 	server.Srv = srv
+
+	return nil
 }

@@ -12,7 +12,7 @@ Share is written in GO.
 
 ### Installation
 
-#### ‎Mac OS
+#### With [Homebrew](http://brew.sh) (Mac OS & linux)
 ```
 $ brew tap devcows/apps
 $ brew install share

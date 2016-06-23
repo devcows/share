@@ -13,30 +13,32 @@ import (
 	"github.com/prestonTao/upnp"
 )
 
-func RandomFreePort() int {
+func RandomFreePort() (int, error) {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
-		panic(err)
+		return -1, err
 	}
 
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		panic(err)
+		return -1, err
 	}
 	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
+
+	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
 func OpenUpnpPort(port int) bool {
 	mapping := new(upnp.Upnp)
-	if err := mapping.AddPortMapping(port, port, "TCP"); err == nil {
-		log.Debug("success !")
+	err := mapping.AddPortMapping(port, port, "TCP")
+	if err == nil {
+		log.Info("Upnp port opened!")
 		return true
 		// remove port mapping in gatway
 		// mapping.Reclaim()
 	}
 
-	log.Debug("fail !")
+	log.Info(fmt.Sprintf("Fail open upnp port opened. Error: %s", err.Error()))
 	return false
 }
 

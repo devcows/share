@@ -47,7 +47,7 @@ var AddCmd = &cobra.Command{
 			fmt.Scanf("%d", &option)
 			copyClipboard(res.ListIps[option])
 		} else {
-			fmt.Printf("Error: %s\n", res.ErrorMessage)
+			fmt.Printf("%s\n", res.ErrorMessage)
 		}
 	},
 }
