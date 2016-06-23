@@ -3,6 +3,7 @@ package lib
 import (
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ func createTmpFile() (string, error) {
 	return testFile, err
 }
 
-func createTmpHandler(t *testing.T) http.Handler {
+func createTmpFileHandler(t *testing.T) http.Handler {
 	testFile, err := createTmpFile()
 	assert.Nil(t, err)
 
@@ -28,12 +29,26 @@ func createTmpHandler(t *testing.T) http.Handler {
 	return handler
 }
 
-func TestCreateHandler(t *testing.T) {
-	createTmpHandler(t)
+func createTmpFolderHandler(t *testing.T) http.Handler {
+	testFile, err := createTmpFile()
+	assert.Nil(t, err)
+
+	handler := CreateHandler(filepath.Dir(testFile))
+	assert.NotNil(t, handler)
+
+	return handler
+}
+
+func TestCreateFileHandler(t *testing.T) {
+	createTmpFileHandler(t)
+}
+
+func TestCreateFolderHandler(t *testing.T) {
+	createTmpFolderHandler(t)
 }
 
 func TestServerDaemon(t *testing.T) {
-	handler := createTmpHandler(t)
+	handler := createTmpFileHandler(t)
 	port, err := RandomFreePort()
 	assert.Nil(t, err)
 
@@ -50,6 +65,6 @@ func TestStartServer(t *testing.T) {
 
 	server := Server{UUID: uuid.NewV4().String(), Port: port, Path: testFile, CreatedAt: time.Now()}
 
-	go StartServer(&server)
+	StartServer(&server)
 	assert.Nil(t, nil)
 }

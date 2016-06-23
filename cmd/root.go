@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	RootCmd.AddCommand(versionCmd, ServerCmd, AddCmd, PsCmd, RmCmd)
+	RootCmd.AddCommand(VersionCmd, ServerCmd, AddCmd, PsCmd, RmCmd)
 	AddCmd.PersistentFlags().StringVar(&fileNameParam, "file", "f", "File for share")
 	RmCmd.PersistentFlags().StringVar(&removeServerUUID, "uuid", "u", "UUID server")
 }
