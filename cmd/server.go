@@ -38,7 +38,7 @@ func prepareAndRunServer(server *lib.Server) (bool, error) {
 		}
 	*/
 
-	if settings.Daemon.EnableUpnp {
+	if appSettings.Daemon.EnableUpnp {
 		upnpOpened = lib.OpenUpnpPort(server.Port)
 	}
 
@@ -106,7 +106,7 @@ func processPsServers(c *gin.Context) {
 	c.JSON(http.StatusOK, msg)
 }
 
-func mainServer() {
+func mainServer(settings lib.SettingsShare) {
 	r := gin.Default()
 	r.POST("/add", func(c *gin.Context) {
 		path := c.PostForm("path")
@@ -144,7 +144,7 @@ func loadInitialServers() error {
 	return nil
 }
 
-func overwriteSettings() {
+func overwriteSettings(settings lib.SettingsShare) {
 	if settings.Mode == "release" {
 		log.SetFormatter(&log.JSONFormatter{})
 
@@ -163,25 +163,31 @@ func overwriteSettings() {
 	}
 }
 
+func runServerCmd(configFile string, settings *lib.SettingsShare) error {
+	if err := lib.InitSettings(configFile, settings); err != nil {
+		return err
+	}
+
+	if err := lib.InitDB(*settings); err != nil {
+		return err
+	}
+
+	overwriteSettings(*settings)
+	loadInitialServers()
+
+	return nil
+}
+
 var ServerCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Server APIREST",
 	Long:  `Server APIREST`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-
-		if err = lib.InitSettings(lib.ConfigFile(), &settings); err != nil {
+		if err := runServerCmd(lib.ConfigFile(), &appSettings); err != nil {
 			log.Error(fmt.Sprintf("Error: %s", err))
 			os.Exit(-1)
 		}
 
-		if err = lib.InitDB(settings); err != nil {
-			log.Error(fmt.Sprintf("Error: %s", err))
-			os.Exit(-1)
-		}
-
-		overwriteSettings()
-		loadInitialServers()
-		mainServer()
+		mainServer(appSettings)
 	},
 }

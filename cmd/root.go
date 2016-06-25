@@ -11,7 +11,7 @@ import (
 var (
 	fileNameParam    string
 	removeServerUUID string
-	settings         lib.SettingsShare
+	appSettings      lib.SettingsShare
 )
 
 func init() {

@@ -7,6 +7,6 @@ import (
 )
 
 func TestExecuteVersionCmd(t *testing.T) {
-	err := VersionCmd.Execute()
-	assert.Nil(t, err)
+	runVersionCmd()
+	assert.Nil(t, nil)
 }

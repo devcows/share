@@ -46,17 +46,17 @@ func TestStoreRemoveServer(t *testing.T) {
 	assert.Nil(t, err)
 
 	server := Server{UUID: uuid.NewV4().String(), Path: "MyString", Port: 1234, ListIps: []string{"1", "2"}, CreatedAt: time.Now()}
-	err2 := StoreServer(server)
-	assert.Nil(t, err2)
+	err = StoreServer(server)
+	assert.Nil(t, err)
 
-	addedServers, err3 := ListServers()
-	assert.Nil(t, err3)
+	addedServers, err := ListServers()
+	assert.Nil(t, err)
 	assert.Equal(t, len(initial_servers)+1, len(addedServers), "The servers doesn't incremented")
 
-	err4 := RemoveServer(server.UUID)
-	assert.Nil(t, err4)
+	err = RemoveServer(server.UUID)
+	assert.Nil(t, err)
 
-	removedServers, err5 := ListServers()
-	assert.Nil(t, err5)
+	removedServers, err := ListServers()
+	assert.Nil(t, err)
 	assert.Equal(t, len(initial_servers), len(removedServers), "The servers doesn't incremented")
 }
