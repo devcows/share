@@ -21,7 +21,7 @@ func createTmpFile() (string, error) {
 
 func createTmpFileHandler(t *testing.T) http.Handler {
 	testFile, err := createTmpFile()
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	handler := CreateHandler(testFile)
 	assert.NotNil(t, handler)
@@ -31,7 +31,7 @@ func createTmpFileHandler(t *testing.T) http.Handler {
 
 func createTmpFolderHandler(t *testing.T) http.Handler {
 	testFile, err := createTmpFile()
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	handler := CreateHandler(filepath.Dir(testFile))
 	assert.NotNil(t, handler)
@@ -50,7 +50,7 @@ func TestCreateFolderHandler(t *testing.T) {
 func TestServerDaemon(t *testing.T) {
 	handler := createTmpFileHandler(t)
 	port, err := RandomFreePort()
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	go ServerDaemon(port, handler)
 	assert.Nil(t, nil)
@@ -58,10 +58,10 @@ func TestServerDaemon(t *testing.T) {
 
 func TestStartServer(t *testing.T) {
 	testFile, err := createTmpFile()
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	port, err := RandomFreePort()
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	server := Server{UUID: uuid.NewV4().String(), Port: port, Path: testFile, CreatedAt: time.Now()}
 

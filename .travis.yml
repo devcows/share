@@ -20,6 +20,7 @@ before_install:
 install:
   - go get github.com/stretchr/testify/assert
   - go get -v ./...
+  - sudo apt-get install -qy xsel
 
 script:
   - go test -v -coverprofile=api.coverprofile ./api

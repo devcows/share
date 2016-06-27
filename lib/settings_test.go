@@ -18,35 +18,41 @@ func TempFilename(prefix string, extension string) string {
 }
 
 func TestCreateConfigFile(t *testing.T) {
-	var test_settings SettingsShare
+	var testSettings SettingsShare
 
 	configFile := TempFilename("config_", ".toml")
-	err := CreateConfigFile(configFile, test_settings)
-	assert.Nil(t, err)
+	err := CreateConfigFile(configFile, testSettings)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	_, err2 := os.Stat(configFile)
 	assert.False(t, os.IsNotExist(err2), "The config file: %s doesn't exists!", configFile)
 }
 
 func TestInitSettings(t *testing.T) {
-	var test_settings SettingsShare
+	var testSettings SettingsShare
+
+	testSettings = NewSettings()
+	testSettings.Daemon.DatabaseFilePath = TempFilename("db_", ".db")
 
 	configFile := TempFilename("config_", ".toml")
+	err := CreateConfigFile(configFile, testSettings)
+	assert.Nil(t, err, GetErrorMessage(err))
+
 	// Create
-	err := InitSettings(configFile, &test_settings)
-	assert.Nil(t, err)
-	assert.NotNil(t, test_settings)
+	err = InitSettings(configFile, &testSettings)
+	assert.Nil(t, err, GetErrorMessage(err))
+	assert.NotNil(t, testSettings)
 
 	// LOAD
-	err2 := InitSettings(configFile, &test_settings)
-	assert.Nil(t, err2)
-	assert.NotNil(t, test_settings)
+	err = InitSettings(configFile, &testSettings)
+	assert.Nil(t, err, GetErrorMessage(err))
+	assert.NotNil(t, testSettings)
 }
 
 func TestNewSettings(t *testing.T) {
-	test_settings := NewSettings()
+	testSettings := NewSettings()
 
-	assert.NotNil(t, test_settings)
+	assert.NotNil(t, testSettings)
 }
 
 func TestConfigFolder(t *testing.T) {
@@ -71,8 +77,8 @@ func TestConfigFileSQLITE(t *testing.T) {
 }
 
 func TestConfigServerEndPoint(t *testing.T) {
-	test_settings := NewSettings()
-	endPoint := ConfigServerEndPoint(test_settings)
+	testSettings := NewSettings()
+	endPoint := ConfigServerEndPoint(testSettings)
 
 	assert.NotNil(t, endPoint)
 	assert.True(t, len(endPoint) > 0)

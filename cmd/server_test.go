@@ -13,7 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testSettings lib.SettingsShare
+var (
+	testSettings lib.SettingsShare
+	configFile   string
+)
 
 func TempFilename(prefix string, extension string) string {
 	randBytes := make([]byte, 16)
@@ -22,10 +25,11 @@ func TempFilename(prefix string, extension string) string {
 }
 
 func setup() {
+	configFile = TempFilename("config_", ".toml")
 	testSettings = lib.NewSettings()
 	testSettings.Daemon.DatabaseFilePath = TempFilename("db_", ".db")
 
-	err := lib.InitDB(testSettings)
+	err := lib.CreateConfigFile(configFile, testSettings)
 	if err != nil {
 		panic(err)
 	}
@@ -41,18 +45,16 @@ func TestMain(m *testing.M) {
 }
 
 func TestExecuteServerCmd(t *testing.T) {
-	configFile := TempFilename("config_", ".toml")
-
 	err := lib.InitSettings(configFile, &testSettings)
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	err = lib.InitDB(testSettings)
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	server := lib.Server{UUID: uuid.NewV4().String(), Path: "MyString", Port: 1234, ListIps: []string{"1", "2"}, CreatedAt: time.Now()}
 	err = lib.StoreServer(server)
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 
 	err = runServerCmd(configFile, &testSettings)
-	assert.Nil(t, err)
+	assert.Nil(t, err, GetErrorMessage(err))
 }
