@@ -199,3 +199,19 @@ func SearchServerByUUID(uuid string) (Server, error) {
 
 	return Server{}, fmt.Errorf("Server not found with UUID: %s", uuid)
 }
+
+func SearchServerByPath(path string) (Server, error) {
+	servers, err := ListServers()
+
+	if err != nil {
+		return Server{}, err
+	}
+
+	for _, server := range servers {
+		if server.Path == path {
+			return server, nil
+		}
+	}
+
+	return Server{}, fmt.Errorf("Server not found with path: %s", path)
+}

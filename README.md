@@ -32,12 +32,12 @@ $ share server
 
 Hello world CLI:
 ```
-$ share add --file path_to_file
+$ share add PATH [PATH...]
 ```
 
 Synopsis:
 
 ```
-$ share [command] [flags] FILE_PATH
+$ share [command] [flags] PATH
 ```
 See also `share --help`.

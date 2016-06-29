@@ -23,12 +23,12 @@ func runPsCmd(settings lib.SettingsShare) {
 
 	if res.Status {
 		lines := []string{
-			"UUID | Folder | List Ips | Flags | CreatedAt",
+			"UUID | Folder | Flags | CreatedAt",
 		}
 
 		for i := 0; i < len(res.Servers); i++ {
 			server := res.Servers[i]
-			line := fmt.Sprintf("%v|%s|%v|%v|%v", server.UUID, server.Path, server.ListIps, server.Flags, server.CreatedAt)
+			line := fmt.Sprintf("%v|%s|%v|%v", server.UUID, server.Path, server.Flags, server.CreatedAt)
 			lines = append(lines, line)
 		}
 

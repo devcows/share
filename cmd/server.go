@@ -29,9 +29,7 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func newServerParams(c *gin.Context) lib.Server {
-	path := c.PostForm("path")
-
+func newServerParams(c *gin.Context, path string) lib.Server {
 	flags := []string{}
 	if c.PostForm("zip") == "true" {
 		flags = append(flags, "zip")
@@ -43,7 +41,16 @@ func newServerParams(c *gin.Context) lib.Server {
 func processAddServer(c *gin.Context) {
 	var err error
 
-	msg := api.AddResponse{Status: true, UpnpOpened: false, Server: newServerParams(c)}
+	path := c.PostForm("path")
+	msg := api.AddResponse{Status: true, UpnpOpened: false}
+	msg.Server, err = lib.SearchServerByPath(path)
+	if err == nil {
+		msg.Server.ListIps = lib.GetServerIps(msg.UpnpOpened, appSettings.FileServerDaemon.Port, msg.Server.UUID)
+		c.JSON(http.StatusOK, msg)
+		return
+	}
+
+	msg.Server = newServerParams(c, path)
 	if err = validateServer(msg.Server); err != nil {
 		msg.Status = false
 		msg.ErrorMessage = fmt.Sprintf("Error: %s", err)
