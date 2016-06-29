@@ -42,21 +42,21 @@ func OpenUpnpPort(port int) bool {
 	return false
 }
 
-func GetLocalIps(port int) []string {
+func GetLocalIps(port int, uuid string) []string {
 	listIps := []string{}
 
 	host, _ := os.Hostname()
 	addrs, _ := net.LookupIP(host)
 	for _, addr := range addrs {
 		if ipv4 := addr.To4(); ipv4 != nil {
-			listIps = append(listIps, fmt.Sprintf("http://%s:%v", ipv4, port))
+			listIps = append(listIps, fmt.Sprintf("http://%s:%v/%s", ipv4, port, uuid))
 		}
 	}
 
 	return listIps
 }
 
-func GetPublicIps(port int) []string {
+func GetPublicIps(port int, uuid string) []string {
 	listIps := []string{}
 	resp, err := http.Get("http://myexternalip.com/raw")
 	if err == nil {
@@ -65,9 +65,17 @@ func GetPublicIps(port int) []string {
 
 		if err == nil {
 			lines := strings.Split(string(body), "\n")
-			listIps = append(listIps, fmt.Sprintf("http://%s:%v", lines[0], port))
+			listIps = append(listIps, fmt.Sprintf("http://%s:%v/%s", lines[0], port, uuid))
 		}
 	}
 
 	return listIps
+}
+
+func GetServerIps(upnpOpened bool, port int, uuid string) []string {
+	if upnpOpened {
+		return append(GetLocalIps(port, uuid), GetPublicIps(port, uuid)...)
+	} else {
+		return GetLocalIps(port, uuid)
+	}
 }

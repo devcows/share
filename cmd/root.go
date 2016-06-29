@@ -9,15 +9,13 @@ import (
 )
 
 var (
-	fileNameParam    string
-	removeServerUUID string
-	appSettings      lib.SettingsShare
+	appSettings lib.SettingsShare
+	zipOption   bool
 )
 
 func init() {
 	RootCmd.AddCommand(VersionCmd, ServerCmd, AddCmd, PsCmd, RmCmd)
-	AddCmd.PersistentFlags().StringVar(&fileNameParam, "file", "f", "File for share")
-	RmCmd.PersistentFlags().StringVar(&removeServerUUID, "uuid", "u", "UUID server")
+	AddCmd.PersistentFlags().BoolVar(&zipOption, "zip", false, "Package with tar")
 }
 
 var RootCmd = &cobra.Command{

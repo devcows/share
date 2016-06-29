@@ -20,7 +20,7 @@ func GetErrorMessage(err error) string {
 
 func setup() {
 	testSettings = NewSettings()
-	testSettings.Daemon.DatabaseFilePath = TempFilename("db_", ".db")
+	testSettings.ShareDaemon.DatabaseFilePath = TempFilename("db_", ".db")
 
 	err := InitDB(testSettings)
 	if err != nil {
@@ -44,15 +44,15 @@ func TestOpenDatabase(t *testing.T) {
 }
 
 func TestInitDatabase(t *testing.T) {
-	_, err2 := os.Stat(testSettings.Daemon.DatabaseFilePath)
-	assert.False(t, os.IsNotExist(err2), "The database: %s doesn't exists!", testSettings.Daemon.DatabaseFilePath)
+	_, err2 := os.Stat(testSettings.ShareDaemon.DatabaseFilePath)
+	assert.False(t, os.IsNotExist(err2), "The database: %s doesn't exists!", testSettings.ShareDaemon.DatabaseFilePath)
 }
 
 func TestStoreRemoveServer(t *testing.T) {
 	initial_servers, err := ListServers()
 	assert.Nil(t, err, GetErrorMessage(err))
 
-	server := Server{UUID: uuid.NewV4().String(), Path: "MyString", Port: 1234, ListIps: []string{"1", "2"}, CreatedAt: time.Now()}
+	server := Server{UUID: uuid.NewV4().String(), Path: "MyString", ListIps: []string{"1", "2"}, CreatedAt: time.Now()}
 	err = StoreServer(server)
 	assert.Nil(t, err, GetErrorMessage(err))
 

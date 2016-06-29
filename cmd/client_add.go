@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strconv"
 
 	"github.com/atotto/clipboard"
 	"github.com/devcows/share/api"
+	"github.com/devcows/share/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -18,13 +20,30 @@ func copyClipboard(strToCopy string) error {
 	return clipboard.WriteAll(strToCopy)
 }
 
-func runAddCmd() error {
-	absFileNamePath, err := filepath.Abs(fileNameParam)
+func selectOptionFrom(options []string) error {
+	//TODO: check bad options
+	if len(options) == 1 {
+		return copyClipboard(options[0])
+	}
+
+	fmt.Println("Choose option to copy to clipboard:")
+	for i, option := range options {
+		fmt.Printf("%v) %s\n", i, option)
+	}
+
+	var option int
+	fmt.Scanf("%d", &option)
+	return copyClipboard(options[option])
+}
+
+func runAddCmd(filePath string, settings lib.SettingsShare) error {
+	absFileNamePath, err := filepath.Abs(filePath)
 	if err != nil {
 		return err
 	}
 
-	resp, err := http.PostForm("http://localhost:7890/add", url.Values{"path": {absFileNamePath}})
+	serverEndPoint := fmt.Sprintf("http://%s:%v/add", settings.ShareDaemon.Host, settings.ShareDaemon.Port)
+	resp, err := http.PostForm(serverEndPoint, url.Values{"path": {absFileNamePath}, "zip": {strconv.FormatBool(zipOption)}})
 	if err != nil {
 		return err
 	}
@@ -38,18 +57,7 @@ func runAddCmd() error {
 	json.Unmarshal([]byte(body), &res)
 
 	if res.Status {
-		if len(res.ListIps) == 1 {
-			return copyClipboard(res.ListIps[0])
-		}
-
-		fmt.Println("Choose option to copy to clipboard:")
-		for i := 0; i < len(res.ListIps); i++ {
-			fmt.Printf("%v) %s\n", i, res.ListIps[i])
-		}
-
-		var option int
-		fmt.Scanf("%d", &option)
-		return copyClipboard(res.ListIps[option])
+		selectOptionFrom(res.Server.ListIps)
 	}
 
 	fmt.Printf("%s\n", res.ErrorMessage)
@@ -57,12 +65,22 @@ func runAddCmd() error {
 }
 
 var AddCmd = &cobra.Command{
-	Use:   "add",
+	Use:   "add PATH [PATH...]",
 	Short: "Add file or folder to server",
 	Long:  `Add file or folder to server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := runAddCmd(); err != nil {
+		if len(args) == 0 {
+			fmt.Println("Error: Empty arguments")
+		}
+
+		if err := lib.InitSettings(lib.ConfigFile(), &appSettings); err != nil {
 			fmt.Printf("Error: %s\n", err.Error())
+		}
+
+		for _, arg := range args {
+			if err := runAddCmd(arg, appSettings); err != nil {
+				fmt.Printf("Error: %s\n", err.Error())
+			}
 		}
 	},
 }

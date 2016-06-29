@@ -2,26 +2,25 @@ package lib
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 
 	_ "github.com/cznic/ql/driver"
-	"github.com/tylerb/graceful"
 )
 
 type Server struct {
 	UUID      string    `json:"uuid"`
 	Path      string    `json:"path"`
-	Port      int       `json:"port"`
 	CreatedAt time.Time `json:"created_at"`
 	ListIps   []string  `json:"list_ips"`
-	Srv       *graceful.Server
+	Flags     []string  `json:"flags"`
 }
 
 var settings *SettingsShare
 
 func OpenDatabase() (*sql.DB, error) {
-	destDb, err := sql.Open("ql", settings.Daemon.DatabaseFilePath)
+	destDb, err := sql.Open("ql", settings.ShareDaemon.DatabaseFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +45,7 @@ func CreateTable() error {
 	CREATE TABLE IF NOT EXISTS Servers(
 		UUID string,
 		Path string,
-		Port int,
-		ListIps string,
+		Flags string,
 		CreatedAt time
 	);
 	`
@@ -80,10 +78,9 @@ func StoreServer(server Server) error {
 	INSERT INTO Servers(
 		UUID,
 		Path,
-		Port,
-		ListIps,
-		CreatedAt
-	) values($1, $2, $3, $4, $5)
+		Flags,
+		CreatedAt,
+	) values($1, $2, $3, $4)
 	`
 
 	destDb, err := OpenDatabase()
@@ -103,7 +100,7 @@ func StoreServer(server Server) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(server.UUID, server.Path, server.Port, strings.Join(server.ListIps, "||"), server.CreatedAt)
+	_, err = stmt.Exec(server.UUID, server.Path, strings.Join(server.Flags, "||"), server.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -160,8 +157,8 @@ func RemoveServer(uuid string) error {
 func ListServers() ([]Server, error) {
 	var results []Server
 
-	sql_select := `
-	select UUID, Path, Port, ListIps, CreatedAt from Servers order by CreatedAt
+	sqlSelect := `
+	select UUID, Path, Flags, CreatedAt from Servers order by CreatedAt
 	`
 
 	destDb, err := OpenDatabase()
@@ -170,21 +167,35 @@ func ListServers() ([]Server, error) {
 	}
 	defer destDb.Close()
 
-	rows, err := destDb.Query(sql_select)
+	rows, err := destDb.Query(sqlSelect)
 	if err != nil {
 		return results, err
 	}
 
 	for rows.Next() {
 		item := Server{}
-
-		listIps := ""
-		err = rows.Scan(&item.UUID, &item.Path, &item.Port, &listIps, &item.CreatedAt)
-		if err == nil {
-			item.ListIps = strings.Split(listIps, "||")
+		listFlags := ""
+		if err = rows.Scan(&item.UUID, &item.Path, &listFlags, &item.CreatedAt); err == nil {
+			item.Flags = strings.Split(listFlags, "||")
 			results = append(results, item)
 		}
 	}
 
 	return results, nil
+}
+
+func SearchServerByUUID(uuid string) (Server, error) {
+	servers, err := ListServers()
+
+	if err != nil {
+		return Server{}, err
+	}
+
+	for _, server := range servers {
+		if server.UUID == uuid {
+			return server, nil
+		}
+	}
+
+	return Server{}, fmt.Errorf("Server not found with UUID: %s", uuid)
 }

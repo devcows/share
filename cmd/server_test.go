@@ -27,7 +27,7 @@ func TempFilename(prefix string, extension string) string {
 func setup() {
 	configFile = TempFilename("config_", ".toml")
 	testSettings = lib.NewSettings()
-	testSettings.Daemon.DatabaseFilePath = TempFilename("db_", ".db")
+	testSettings.ShareDaemon.DatabaseFilePath = TempFilename("db_", ".db")
 
 	err := lib.CreateConfigFile(configFile, testSettings)
 	if err != nil {
@@ -51,7 +51,7 @@ func TestExecuteServerCmd(t *testing.T) {
 	err = lib.InitDB(testSettings)
 	assert.Nil(t, err, GetErrorMessage(err))
 
-	server := lib.Server{UUID: uuid.NewV4().String(), Path: "MyString", Port: 1234, ListIps: []string{"1", "2"}, CreatedAt: time.Now()}
+	server := lib.Server{UUID: uuid.NewV4().String(), Path: "MyString", ListIps: []string{"1", "2"}, CreatedAt: time.Now()}
 	err = lib.StoreServer(server)
 	assert.Nil(t, err, GetErrorMessage(err))
 

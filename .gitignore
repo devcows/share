@@ -25,3 +25,5 @@ _testmain.go
 
 *.coverprofile
 .goxc.local.json
+.DS_Store
+.idea

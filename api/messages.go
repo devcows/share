@@ -5,11 +5,10 @@ import (
 )
 
 type AddResponse struct {
-	Path         string   `json:"path"`
-	Status       bool     `json:"status"`
-	ListIps      []string `json:"list_ips"`
-	UpnpOpened   bool     `json:"upnp_opened"`
-	ErrorMessage string   `json:"error_message"`
+	UpnpOpened   bool       `json:"upnp_opened"`
+	Status       bool       `json:"status"`
+	ErrorMessage string     `json:"error_message"`
+	Server       lib.Server `json:"server"`
 }
 
 type RmResponse struct {

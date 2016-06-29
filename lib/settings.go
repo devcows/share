@@ -12,20 +12,29 @@ import (
 )
 
 type SettingsShare struct {
-	Daemon Daemon
-	Mode   string
+	ShareDaemon      ShareDaemon
+	FileServerDaemon FileServerDaemon
+	Mode             string
 }
 
-type Daemon struct {
-	Port             int
-	Host             string
-	EnableUpnp       bool
-	DatabaseFilePath string
+type FileServerDaemon struct {
+	Port int
+	Host string
 }
+
+type ShareDaemon struct {
+	Port               int
+	Host               string
+	EnableUpnp         bool
+	DatabaseFilePath   string
+	CompressedFilePath string
+}
+
+const DIR_MASK = 0770
 
 func CreateConfigFile(outputFile string, settings SettingsShare) error {
 	outputFolder := filepath.Dir(outputFile)
-	os.MkdirAll(outputFolder, 0700)
+	os.MkdirAll(outputFolder, DIR_MASK)
 
 	f, err := os.Create(outputFile)
 	if err != nil {
@@ -60,12 +69,19 @@ func InitSettings(configFile string, settings *SettingsShare) error {
 		}
 	}
 
+	os.MkdirAll(CompressedFilePath(), DIR_MASK)
+
 	log.WithFields(log.Fields{"settings": settings}).Info("Current config.")
 	return nil
 }
 
 func NewSettings() SettingsShare {
-	return SettingsShare{Daemon: Daemon{Port: 7890, Host: "localhost", EnableUpnp: false, DatabaseFilePath: ConfigFileSQLITE()}, Mode: "release"}
+	settings := SettingsShare{Mode: "release"}
+
+	settings.ShareDaemon = ShareDaemon{Port: 7890, Host: "localhost", EnableUpnp: false, DatabaseFilePath: ConfigFileSQLITE()}
+	settings.FileServerDaemon = FileServerDaemon{Port: 7891, Host: ""}
+
+	return settings
 }
 
 func ConfigFolder() string {
@@ -76,12 +92,20 @@ func ConfigFile() string {
 	return ConfigFolder() + string(os.PathSeparator) + "config.toml"
 }
 
+func CompressedFilePath() string {
+	return ConfigFolder() + string(os.PathSeparator) + "files"
+}
+
 func ConfigFileSQLITE() string {
 	return ConfigFolder() + string(os.PathSeparator) + "database.db"
 }
 
 func ConfigServerEndPoint(settings SettingsShare) string {
-	return settings.Daemon.Host + ":" + strconv.Itoa(settings.Daemon.Port)
+	return settings.ShareDaemon.Host + ":" + strconv.Itoa(settings.ShareDaemon.Port)
+}
+
+func ConfigFileServerEndPoint(settings SettingsShare) string {
+	return settings.FileServerDaemon.Host + ":" + strconv.Itoa(settings.FileServerDaemon.Port)
 }
 
 func UserHomeDir(runtime_goos string) string {

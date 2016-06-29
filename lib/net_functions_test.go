@@ -18,13 +18,13 @@ func TestOpenUpnpPort(t *testing.T) {
 }
 
 func TestGetLocalIps(t *testing.T) {
-	listIps := GetLocalIps(5000)
+	listIps := GetLocalIps(5000, "1234-1234-1234")
 	assert.NotNil(t, listIps, "GetLocalIps return array list")
 	assert.True(t, len(listIps) > 0, "GetLocalIps empty array")
 }
 
 func TestGetPublicIps(t *testing.T) {
-	listIps := GetPublicIps(5000)
+	listIps := GetPublicIps(5000, "1234-1234-1234")
 	assert.NotNil(t, listIps, "GetPublicIps return array list")
 	//assert.True(t, len(listIps) > 0, "GetPublicIps empty array")
 }

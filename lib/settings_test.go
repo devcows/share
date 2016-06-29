@@ -32,7 +32,7 @@ func TestInitSettings(t *testing.T) {
 	var testSettings SettingsShare
 
 	testSettings = NewSettings()
-	testSettings.Daemon.DatabaseFilePath = TempFilename("db_", ".db")
+	testSettings.ShareDaemon.DatabaseFilePath = TempFilename("db_", ".db")
 
 	configFile := TempFilename("config_", ".toml")
 	err := CreateConfigFile(configFile, testSettings)

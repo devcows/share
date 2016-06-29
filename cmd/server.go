@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,59 +14,69 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func prepareAndRunServer(server *lib.Server) (bool, error) {
-	var err error
-	upnpOpened := false
-
-	if server.Port < 0 {
-		server.Port, err = lib.RandomFreePort()
-
-		if err != nil {
-			return upnpOpened, err
-		}
-	}
-
-	/*
-		TODO: check port already taken and return error.
-		if false {
-			msg.Status = false
-			msg.ErrorMessage = "The port is already in use."
-
-			c.JSON(http.StatusOK, msg)
-			return
-		}
-	*/
-
-	if appSettings.Daemon.EnableUpnp {
-		upnpOpened = lib.OpenUpnpPort(server.Port)
-	}
-
-	if upnpOpened {
-		server.ListIps = append(lib.GetLocalIps(server.Port), lib.GetPublicIps(server.Port)...)
-	} else {
-		server.ListIps = lib.GetLocalIps(server.Port)
-	}
-
-	if len(server.ListIps) == 0 {
-		return upnpOpened, errors.New("No ips, check network connectivity.")
-	}
-
-	err = lib.StartServer(server)
-	return upnpOpened, err
+func validateServer(server lib.Server) error {
+	//TODO: validate flags and properties
+	//TODO: file or folder exists
+	return nil
 }
 
-func processAddServer(server lib.Server, c *gin.Context) {
-	upnpOpened, err := prepareAndRunServer(&server)
-	msg := api.AddResponse{Status: true, UpnpOpened: upnpOpened, ListIps: server.ListIps, Path: server.Path}
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
 
-	if err != nil {
+func newServerParams(c *gin.Context) lib.Server {
+	path := c.PostForm("path")
+
+	flags := []string{}
+	if c.PostForm("zip") == "true" {
+		flags = append(flags, "zip")
+	}
+
+	return lib.Server{UUID: uuid.NewV4().String(), Path: path, CreatedAt: time.Now(), Flags: flags}
+}
+
+func processAddServer(c *gin.Context) {
+	var err error
+
+	msg := api.AddResponse{Status: true, UpnpOpened: false, Server: newServerParams(c)}
+	if err = validateServer(msg.Server); err != nil {
 		msg.Status = false
 		msg.ErrorMessage = fmt.Sprintf("Error: %s", err)
 		c.JSON(http.StatusOK, msg)
 		return
 	}
 
-	if err = lib.StoreServer(server); err != nil {
+	if stringInSlice("zip", msg.Server.Flags) {
+		outPutFilePath := lib.CompressedFilePath() + string(os.PathSeparator) + msg.Server.UUID + ".zip"
+
+		if err := lib.CompressFile(msg.Server.Path, outPutFilePath); err != nil {
+			msg.Status = false
+			msg.ErrorMessage = fmt.Sprintf("Error: %s", err)
+			c.JSON(http.StatusOK, msg)
+			return
+		}
+
+		msg.Server.Path = outPutFilePath
+	}
+
+	if appSettings.ShareDaemon.EnableUpnp {
+		msg.UpnpOpened = lib.OpenUpnpPort(appSettings.FileServerDaemon.Port)
+	}
+
+	msg.Server.ListIps = lib.GetServerIps(msg.UpnpOpened, appSettings.FileServerDaemon.Port, msg.Server.UUID)
+	if len(msg.Server.ListIps) == 0 {
+		msg.Status = false
+		msg.ErrorMessage = fmt.Sprintf("Error: No ips, check network connectivity.")
+		c.JSON(http.StatusOK, msg)
+		return
+	}
+
+	if err = lib.StoreServer(msg.Server); err != nil {
 		msg.Status = false
 		msg.ErrorMessage = fmt.Sprintf("Error: %s", err)
 		c.JSON(http.StatusOK, msg)
@@ -103,17 +112,24 @@ func processPsServers(c *gin.Context) {
 		return
 	}
 
+	upnpOpened := false
+	if appSettings.ShareDaemon.EnableUpnp {
+		upnpOpened = lib.OpenUpnpPort(appSettings.FileServerDaemon.Port)
+	}
+
+	for i := 0; i < len(msg.Servers); i++ {
+		msg.Servers[i].ListIps = lib.GetServerIps(upnpOpened, appSettings.FileServerDaemon.Port, msg.Servers[i].UUID)
+	}
+
+	fmt.Printf("%v\n", msg.Servers)
+
 	c.JSON(http.StatusOK, msg)
 }
 
-func mainServer(settings lib.SettingsShare) {
+func runShareServer(settings lib.SettingsShare) {
 	r := gin.Default()
 	r.POST("/add", func(c *gin.Context) {
-		path := c.PostForm("path")
-		port := -1 //strconv.ParseInt(c.DefaultPostForm("port", "-1"), "-1")
-
-		server := lib.Server{UUID: uuid.NewV4().String(), Port: port, Path: path, CreatedAt: time.Now()}
-		processAddServer(server, c)
+		processAddServer(c)
 	})
 
 	r.GET("/rm/:uuid", func(c *gin.Context) {
@@ -126,25 +142,10 @@ func mainServer(settings lib.SettingsShare) {
 	})
 
 	r.Run(lib.ConfigServerEndPoint(settings))
+	log.WithFields(log.Fields{"ip": settings.ShareDaemon.Host, "port": settings.ShareDaemon.Port}).Info("Share server started.")
 }
 
-func loadInitialServers() error {
-	servers, err := lib.ListServers()
-
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < len(servers); i++ {
-		prepareAndRunServer(&servers[i])
-		//TODO: update values
-	}
-
-	//TODO: if one server fail return error
-	return nil
-}
-
-func overwriteSettings(settings lib.SettingsShare) {
+func overwriteSettings(settings lib.SettingsShare) error {
 	if settings.Mode == "release" {
 		log.SetFormatter(&log.JSONFormatter{})
 
@@ -161,6 +162,8 @@ func overwriteSettings(settings lib.SettingsShare) {
 		// Output to stderr instead of stdout, could also be a file.
 		log.SetOutput(os.Stderr)
 	}
+
+	return nil
 }
 
 func runServerCmd(configFile string, settings *lib.SettingsShare) error {
@@ -172,8 +175,9 @@ func runServerCmd(configFile string, settings *lib.SettingsShare) error {
 		return err
 	}
 
-	overwriteSettings(*settings)
-	loadInitialServers()
+	if err := overwriteSettings(*settings); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -188,6 +192,8 @@ var ServerCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 
-		mainServer(appSettings)
+		log.Info("Running servers...")
+		go lib.RunFileServer(appSettings)
+		runShareServer(appSettings) //TODO: launch as go routine and wait
 	},
 }
