@@ -35,7 +35,7 @@ func newServerParams(c *gin.Context, path string) lib.Server {
 		flags = append(flags, "zip")
 	}
 
-	return lib.Server{UUID: uuid.NewV4().String(), Path: path, CreatedAt: time.Now(), Flags: flags}
+	return lib.Server{UUID: uuid.NewV4().String(), Source: path, Path: path, CreatedAt: time.Now(), Flags: flags}
 }
 
 func processAddServer(c *gin.Context) {
@@ -93,6 +93,7 @@ func processAddServer(c *gin.Context) {
 	c.JSON(http.StatusOK, msg)
 }
 
+// TODO: rm zip file
 func processRmServer(uuid string, c *gin.Context) {
 	msg := api.RmResponse{Status: true}
 

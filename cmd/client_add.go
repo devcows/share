@@ -16,14 +16,14 @@ import (
 )
 
 func copyClipboard(strToCopy string) error {
-	fmt.Printf("Copied to clipboard: %s", strToCopy)
+	fmt.Printf("Copied to clipboard: %s\n", strToCopy)
 	return clipboard.WriteAll(strToCopy)
 }
 
-func selectOptionFrom(options []string) error {
+func selectOptionFrom(options []string) (string, error) {
 	//TODO: check bad options
 	if len(options) == 1 {
-		return copyClipboard(options[0])
+		return options[0], nil
 	}
 
 	fmt.Println("Choose option to copy to clipboard:")
@@ -33,7 +33,8 @@ func selectOptionFrom(options []string) error {
 
 	var option int
 	fmt.Scanf("%d", &option)
-	return copyClipboard(options[option])
+
+	return options[option], nil
 }
 
 func runAddCmd(filePath string, settings lib.SettingsShare) error {
@@ -57,7 +58,17 @@ func runAddCmd(filePath string, settings lib.SettingsShare) error {
 	json.Unmarshal([]byte(body), &res)
 
 	if res.Status {
-		selectOptionFrom(res.Server.ListIps)
+		url, err := selectOptionFrom(res.Server.ListIps)
+		if err != nil {
+			return err
+		}
+
+		copyClipboard(url)
+
+		if qrOption {
+			filePath, _ := lib.GenerateQR(res.Server.UUID, url)
+			fmt.Printf("FILE: %v\n", filePath)
+		}
 	}
 
 	fmt.Printf("%s\n", res.ErrorMessage)

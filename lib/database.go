@@ -12,6 +12,7 @@ import (
 type Server struct {
 	UUID      string    `json:"uuid"`
 	Path      string    `json:"path"`
+	Source    string    `json:"source"`
 	CreatedAt time.Time `json:"created_at"`
 	ListIps   []string  `json:"list_ips"`
 	Flags     []string  `json:"flags"`
@@ -45,6 +46,7 @@ func CreateTable() error {
 	CREATE TABLE IF NOT EXISTS Servers(
 		UUID string,
 		Path string,
+		Source string,
 		Flags string,
 		CreatedAt time
 	);
@@ -78,9 +80,10 @@ func StoreServer(server Server) error {
 	INSERT INTO Servers(
 		UUID,
 		Path,
+		Source,
 		Flags,
 		CreatedAt,
-	) values($1, $2, $3, $4)
+	) values($1, $2, $3, $4, $5)
 	`
 
 	destDb, err := OpenDatabase()
@@ -100,7 +103,7 @@ func StoreServer(server Server) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(server.UUID, server.Path, strings.Join(server.Flags, "||"), server.CreatedAt)
+	_, err = stmt.Exec(server.UUID, server.Path, server.Source, strings.Join(server.Flags, "||"), server.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -158,7 +161,7 @@ func ListServers() ([]Server, error) {
 	var results []Server
 
 	sqlSelect := `
-	select UUID, Path, Flags, CreatedAt from Servers order by CreatedAt
+	select UUID, Path, Source, Flags, CreatedAt from Servers order by CreatedAt
 	`
 
 	destDb, err := OpenDatabase()
@@ -175,7 +178,7 @@ func ListServers() ([]Server, error) {
 	for rows.Next() {
 		item := Server{}
 		listFlags := ""
-		if err = rows.Scan(&item.UUID, &item.Path, &listFlags, &item.CreatedAt); err == nil {
+		if err = rows.Scan(&item.UUID, &item.Path, &item.Source, &listFlags, &item.CreatedAt); err == nil {
 			item.Flags = strings.Split(listFlags, "||")
 			results = append(results, item)
 		}

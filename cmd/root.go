@@ -11,11 +11,13 @@ import (
 var (
 	appSettings lib.SettingsShare
 	zipOption   bool
+	qrOption    bool
 )
 
 func init() {
 	RootCmd.AddCommand(VersionCmd, ServerCmd, AddCmd, PsCmd, RmCmd)
 	AddCmd.PersistentFlags().BoolVar(&zipOption, "zip", false, "Package with tar")
+	AddCmd.PersistentFlags().BoolVar(&qrOption, "qr", false, "Save qr image")
 }
 
 var RootCmd = &cobra.Command{
