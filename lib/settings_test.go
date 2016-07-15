@@ -1,21 +1,12 @@
 package lib
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TempFilename(prefix string, extension string) string {
-	randBytes := make([]byte, 16)
-	rand.Read(randBytes)
-	return filepath.Join(os.TempDir(), prefix+hex.EncodeToString(randBytes)+extension)
-}
 
 func TestCreateConfigFile(t *testing.T) {
 	var testSettings SettingsShare
