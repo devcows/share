@@ -6,7 +6,7 @@
 		"publish-github"
 	],
 	"Os": "linux darwin windows",
-	"PackageVersion": "0.0.2",
+	"PackageVersion": "0.0.3",
 	"TaskSettings": {
 		"publish-github": {
 			"owner": "devcows",
