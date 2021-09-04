@@ -11,6 +11,10 @@ Share is a command line for sharing files by network. The goal is to share a fil
 
 Share is written in GO.
 
+Sponsor this project:
+- [https://paypal.me/ryanfox1985](https://paypal.me/ryanfox1985)
+- [https://www.patreon.com/ryanfox1985](https://www.patreon.com/ryanfox1985)
+
 ### Installation
 
 #### With [Homebrew](http://brew.sh) (Mac OS & linux)
@@ -21,7 +25,7 @@ $ brew install share
 
 #### Other
 
-To install Share command line go to [relases](https://github.com/devcows/share/releases) and download package for your operating system.
+To install Share command line go to [releases](https://github.com/devcows/share/releases) and download package for your operating system.
 
 ### Usage
 
